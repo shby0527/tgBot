@@ -59,6 +59,9 @@ logging:
     com:
       github:
         shby0527: debug
+      xw:
+        task:
+          aspects: debug
 
 xw:
   aspect:
@@ -91,3 +94,11 @@ xw:
 bot:
   api:
     token: "private"
+    default-process: sliceEntityProcessService
+    service-to-process:
+      bot_command: botCommandProcessService
+  command:
+    commands:
+      random: randomCommandProcessor
+      randompic: randomCommandProcessor
+
