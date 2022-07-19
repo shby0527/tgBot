@@ -1,0 +1,93 @@
+#server端口配置，此端口不对外开放
+server:
+  http2:
+    enabled: true
+  port: 19900
+  error:
+      whitelabel:
+        enabled: false
+
+spring:
+  mvc:
+    throw-exception-if-no-handler-found: true
+    pathmatch:
+      matching-strategy: ant-path-matcher
+  web:
+    resources:
+      add-mappings: false
+  # 连接池
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://123.123.123.123:3306/database?useUnicode=true&characterEncoding=utf-8&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
+    username: username
+    password: password
+    druid:
+      enable: true
+      max-active: 100
+      min-idle: 5
+      initial-size: 5
+      max-wait: 60000
+      pool-prepared-statements: true
+      timeBetweenEvictionRunsMillis: 60000
+      stat-view-servlet:
+        enabled: false
+        url-pattern: /druid/*
+        login-username: private
+        login-password: private
+        reset-enable: true
+      filter:
+        stat:
+          enabled: false
+  # redis 连接的配制
+  redis:
+    database: 8
+    host: private
+    port: 6379
+    password:
+    jedis:
+      pool:
+        max-wait: -1
+        max-idle: 10
+    timeout: 5000
+
+mybatis:
+  mapper-locations: classpath*:/mapper/*.xml
+
+logging:
+  level:
+    root: info
+    com:
+      github:
+        shby0527: debug
+
+xw:
+  aspect:
+    # 运行时间监控
+    times:
+      timeout: 5s
+      logToError: true
+      pointcut: execution(public * com.github.shby0527.tgbot.services..*(..))
+      enabled: true
+  # keycode检查
+  token:
+    # 小程序的这个直接关闭，不检查
+    enabled: false
+    token-key: keycode
+    ignore-key-case: true
+    token-algorithm: MD5
+    pass-by-all: false
+  # httpclient的服务
+  httpclient:
+    enabled: true
+    timeout: 15s
+    response-read-timeout: 2m
+    use-async: true
+    idle-timeout: 2m
+    charset: UTF-8
+    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+
+
+
+bot:
+  api:
+    token: "private"

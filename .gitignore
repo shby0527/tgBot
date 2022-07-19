@@ -1,0 +1,44 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+logs/
+#忽略的本地配置文件
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+/build/
+/log/
+/logs/
+/tasks/xi9y-smartgame-scheduler-runner/rsakey/
+/rsakey/
+rsakey/
+
+### log
+
+api-log/
+
+.svn/
+
+### mac的配置文件
+.gradle
+*.DS_Store
+src/main/resources/application-dev.yaml
