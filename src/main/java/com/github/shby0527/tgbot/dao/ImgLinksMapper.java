@@ -1,6 +1,7 @@
 package com.github.shby0527.tgbot.dao;
 
 import com.github.shby0527.tgbot.entities.ImgLinks;
+import org.apache.ibatis.annotations.Param;
 
 public interface ImgLinksMapper {
     /**
@@ -42,4 +43,8 @@ public interface ImgLinksMapper {
      * @mbg.generated Tue Jul 19 12:04:09 CST 2022
      */
     int updateByPrimaryKey(ImgLinks record);
+
+    ImgLinks getLatestImage();
+
+    ImgLinks getNearIdImage(@Param("id") Long id);
 }

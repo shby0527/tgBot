@@ -1,6 +1,10 @@
 package com.github.shby0527.tgbot.dao;
 
 import com.github.shby0527.tgbot.entities.TagFoImgKey;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Collection;
+import java.util.List;
 
 public interface TagToImgMapper {
     /**
@@ -18,4 +22,6 @@ public interface TagToImgMapper {
      * @mbg.generated Tue Jul 19 12:04:09 CST 2022
      */
     int insertSelective(TagFoImgKey record);
+
+    List<Long> tagsIdToImageId(@Param("tagIds") Collection<Long> tagIds);
 }

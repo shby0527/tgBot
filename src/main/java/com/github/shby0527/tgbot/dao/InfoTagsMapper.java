@@ -1,6 +1,9 @@
 package com.github.shby0527.tgbot.dao;
 
 import com.github.shby0527.tgbot.entities.InfoTags;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Collection;
 
 public interface InfoTagsMapper {
     /**
@@ -42,4 +45,6 @@ public interface InfoTagsMapper {
      * @mbg.generated Tue Jul 19 12:04:09 CST 2022
      */
     int updateByPrimaryKey(InfoTags record);
+
+    Collection<Long> selectTagsToId(@Param("tag") String tag);
 }

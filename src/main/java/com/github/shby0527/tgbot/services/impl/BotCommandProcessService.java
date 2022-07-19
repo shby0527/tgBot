@@ -40,7 +40,9 @@ public class BotCommandProcessService implements EntityProcessService {
             String args = text.substring(offset + length + 1);
             arguments = args.split(" ");
         }
-        RegisterBotCommandService commandService = registerBotCommandServiceMap.get(command);
+        String serviceName = commandRegisterProperties.getCommands()
+                .getOrDefault(command.substring(1), "");
+        RegisterBotCommandService commandService = registerBotCommandServiceMap.get(serviceName);
         if (commandService != null) {
             commandService.process(arguments, origin);
         }
