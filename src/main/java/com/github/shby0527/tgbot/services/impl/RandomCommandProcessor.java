@@ -1,23 +1,32 @@
 package com.github.shby0527.tgbot.services.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.ImgLinksMapper;
 import com.github.shby0527.tgbot.dao.InfoTagsMapper;
 import com.github.shby0527.tgbot.dao.TagToImgMapper;
 import com.github.shby0527.tgbot.dao.TgUploadedMapper;
 import com.github.shby0527.tgbot.entities.ImgLinks;
+import com.github.shby0527.tgbot.entities.TgUploaded;
+import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.RegisterBotCommandService;
+import com.github.shby0527.tgbot.websocket.Aria2WebSocketHandler;
 import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.*;
 
 @Slf4j
@@ -31,6 +40,9 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
     private TelegramBotProperties botProperties;
 
     @Autowired
+    private Aria2Properties aria2Properties;
+
+    @Autowired
     private ImgLinksMapper imgLinksMapper;
 
     @Autowired
@@ -41,6 +53,9 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
 
     @Autowired
     private TgUploadedMapper tgUploadedMapper;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public void process(String[] arguments, JsonNode node) {
@@ -61,19 +76,58 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
             sendText("ご主人さまのさかしものがなくなっちゃった、うぅぅぅぅQVQ", node);
             return;
         }
-
+        TgUploaded uploaded = tgUploadedMapper.selectByPrimaryKey(imgLinks.getId());
+        if (uploaded != null) {
+            sendDocument(imgLinks, uploaded, node);
+            return;
+        }
+        JsonNode rep = sendText("ご主人さまのさかしものが見つかったぞ、いまダウロード中", node);
+        // 这里发送websocket的消息，下载图片
+        Map<String, Object> saveStatus = new HashMap<>(2);
+        saveStatus.put("image", imgLinks);
+        saveStatus.put("chat", node);
+        saveStatus.put("replay", rep);
+        String key = RedisKeyConstant.getWaitingDownloadImage(imgLinks.getId());
+        ValueOperations<String, Object> ops = redisTemplate.opsForValue();
+        ops.set(key, saveStatus);
+        // 通过websocket 开始下载
+        try {
+            WebSocketSession session = Aria2WebSocketHandler.getSession();
+            Map<String, Object> addUrl = new HashMap<>();
+            Map<String, Object> params = new HashMap<>();
+            int latestIndex = imgLinks.getLink().lastIndexOf('.');
+            String ext = imgLinks.getLink().substring(latestIndex);
+            params.put("out", imgLinks.getId().toString() + ext);
+            addUrl.put("jsonrpc", "2.0");
+            addUrl.put("id", "addrpc-" + imgLinks.getId());
+            addUrl.put("method", "aria2.addUri");
+            addUrl.put("params", new Object[]{
+                    "token:" + aria2Properties.getToken(),
+                    new String[]{imgLinks.getLink()},
+                    params
+            });
+            TextMessage textMessage = new TextMessage(JSONUtils.OBJECT_MAPPER.writeValueAsBytes(addUrl));
+            session.sendMessage(textMessage);
+        } catch (IOException e) {
+            log.debug("获取 session 失败", e);
+            sendText("ご主人さまのさかしものがなくなっちゃった、うぅぅぅぅQVQ", node);
+        }
     }
 
-
-    private void sendText(String text, JsonNode origin) {
+    private void sendDocument(ImgLinks links, TgUploaded uploaded, JsonNode origin) {
         Map<String, Object> post = new HashMap<>();
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
         JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
         Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
         post.put("reply_to_message_id", messageId);
-        post.put("text", text + "\n @" + from.get("username").textValue());
         post.put("chat_id", chat.get("id").longValue());
-        String url = "https://api.telegram.org/bot" + botProperties.getToken() + "/sendMessage";
+        post.put("caption", MessageFormat.format("@{0} \nAuthor: {1} \n{2}x{3}",
+                Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""),
+                Optional.ofNullable(links.getAuthor()).orElse("无"),
+                Optional.ofNullable(links.getWidth()).orElse(0),
+                Optional.ofNullable(links.getHeight()).orElse(0)));
+        post.put("document", uploaded.getTgid());
+        String url = botProperties.getUrl() + "sendDocument";
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
@@ -84,5 +138,29 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+
+    private JsonNode sendText(String text, JsonNode origin) {
+        Map<String, Object> post = new HashMap<>();
+        JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
+        JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
+        Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
+        post.put("reply_to_message_id", messageId);
+        post.put("text", text + "\n @" + Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""));
+        post.put("chat_id", chat.get("id").longValue());
+        String url = botProperties.getUrl() + "sendMessage";
+        try {
+            String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
+            log.debug("post data: {}", json);
+            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
+                JsonNode back = response.getJson();
+                log.debug("return back {}", back);
+                return back;
+            }
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+        }
+        return null;
     }
 }

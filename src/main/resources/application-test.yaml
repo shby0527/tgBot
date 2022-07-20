@@ -95,10 +95,17 @@ bot:
   api:
     token: "private"
     default-process: sliceEntityProcessService
+    url: http://127.0.0.1:17900/bot${bot.api.token}/
+    auto-chat:
+      - chat-id: -1001175181342
+        tag: g41
     service-to-process:
       bot_command: botCommandProcessService
   command:
     commands:
       random: randomCommandProcessor
       randompic: randomCommandProcessor
+  aria2:
+    address: ws://192.168.10.187:6800/jsonrpc
+    token: NEPX68EQF6BC
 

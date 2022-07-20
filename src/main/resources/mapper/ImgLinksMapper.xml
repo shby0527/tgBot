@@ -232,7 +232,7 @@
         <include refid="Base_Column_List"/>
         from img_links
         where id &gt;= #{id, jdbcType=BIGINT}
-        order id asc
+        order by id asc
         limit 1
     </select>
 </mapper>

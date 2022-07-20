@@ -18,4 +18,15 @@ public class TelegramBotProperties {
     private Map<String, String> serviceToProcess;
 
     private String defaultProcess;
+
+    private String url;
+
+    private AutoChatConfig[] autoChat;
+
+    @Data
+    public static class AutoChatConfig {
+        private Long chatId;
+
+        private String tag;
+    }
 }
