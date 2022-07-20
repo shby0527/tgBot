@@ -34,7 +34,7 @@ public class BotCommandProcessService implements EntityProcessService {
             command = command.substring(0, indexOfAt);
         }
         String[] arguments = null;
-        if (text.length() == length) {
+        if (text.length() - offset == length) {
             arguments = new String[0];
         } else {
             String args = text.substring(offset + length + 1);
