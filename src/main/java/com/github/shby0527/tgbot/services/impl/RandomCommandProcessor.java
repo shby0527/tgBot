@@ -7,6 +7,7 @@ import com.github.shby0527.tgbot.dao.InfoTagsMapper;
 import com.github.shby0527.tgbot.dao.TagToImgMapper;
 import com.github.shby0527.tgbot.dao.TgUploadedMapper;
 import com.github.shby0527.tgbot.entities.ImgLinks;
+import com.github.shby0527.tgbot.entities.InfoTags;
 import com.github.shby0527.tgbot.entities.TgUploaded;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
@@ -28,6 +29,7 @@ import org.springframework.web.socket.WebSocketSession;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service("randomCommandProcessor")
@@ -115,17 +117,19 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
     }
 
     private void sendDocument(ImgLinks links, TgUploaded uploaded, JsonNode origin) {
+        List<InfoTags> tags = tagToImgMapper.getImagesTags(links.getId());
         Map<String, Object> post = new HashMap<>();
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
         JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
         Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
         post.put("reply_to_message_id", messageId);
         post.put("chat_id", chat.get("id").longValue());
-        post.put("caption", MessageFormat.format("@{0} \nAuthor: {1} \n{2}x{3}",
+        post.put("caption", MessageFormat.format("@{0} \nAuthor: {1} \n{2}x{3} \ntags: {4}",
                 Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""),
                 Optional.ofNullable(links.getAuthor()).orElse("无"),
                 Optional.ofNullable(links.getWidth()).orElse(0),
-                Optional.ofNullable(links.getHeight()).orElse(0)));
+                Optional.ofNullable(links.getHeight()).orElse(0),
+                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
         post.put("document", uploaded.getTgid());
         String url = botProperties.getUrl() + "sendDocument";
         try {

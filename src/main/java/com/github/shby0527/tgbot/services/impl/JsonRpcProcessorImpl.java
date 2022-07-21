@@ -2,8 +2,10 @@ package com.github.shby0527.tgbot.services.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
+import com.github.shby0527.tgbot.dao.TagToImgMapper;
 import com.github.shby0527.tgbot.dao.TgUploadedMapper;
 import com.github.shby0527.tgbot.entities.ImgLinks;
+import com.github.shby0527.tgbot.entities.InfoTags;
 import com.github.shby0527.tgbot.entities.TgUploaded;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
@@ -27,11 +29,13 @@ import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,6 +43,9 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
 
     @Autowired
     private TgUploadedMapper tgUploadedMapper;
+
+    @Autowired
+    private TagToImgMapper tagToImgMapper;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -229,16 +236,18 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     private JsonNode sendDocument(String picUrl, ImgLinks links, JsonNode origin, Long scc) {
         Map<String, Object> post = new HashMap<>();
         if (scc == null) {
+            List<InfoTags> tags = tagToImgMapper.getImagesTags(links.getId());
             JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
             JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
             Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
             post.put("reply_to_message_id", messageId);
             post.put("chat_id", chat.get("id").longValue());
-            post.put("caption", MessageFormat.format("@{0} \nAuthor: {1} \n{2}x{3}",
+            post.put("caption", MessageFormat.format("@{0} \nAuthor: {1} \n{2}x{3}, \ntags: {4}",
                     Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""),
                     Optional.ofNullable(links.getAuthor()).orElse("无"),
                     Optional.ofNullable(links.getWidth()).orElse(0),
-                    Optional.ofNullable(links.getHeight()).orElse(0)));
+                    Optional.ofNullable(links.getHeight()).orElse(0),
+                    tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
         } else {
             post.put("chat_id", scc);
         }

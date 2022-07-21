@@ -70,4 +70,10 @@
         order by 3 desc
         limit #{limit}
     </select>
+
+    <select id="getImagesTags" resultMap="com.github.shby0527.tgbot.dao.InfoTagsMapper.BaseResultMap">
+        SELECT it.* from info_tags it
+        left join tag_fo_img tfi on it.id = tfi.tagId
+        where tfi.imgId = #{imgId}
+    </select>
 </mapper>

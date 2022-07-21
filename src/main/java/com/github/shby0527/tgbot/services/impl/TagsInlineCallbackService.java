@@ -3,9 +3,11 @@ package com.github.shby0527.tgbot.services.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.ImgLinksMapper;
+import com.github.shby0527.tgbot.dao.InfoTagsMapper;
 import com.github.shby0527.tgbot.dao.TagToImgMapper;
 import com.github.shby0527.tgbot.dao.TgUploadedMapper;
 import com.github.shby0527.tgbot.entities.ImgLinks;
+import com.github.shby0527.tgbot.entities.InfoTags;
 import com.github.shby0527.tgbot.entities.TgUploaded;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
@@ -26,6 +28,7 @@ import org.springframework.web.socket.WebSocketSession;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service("tagsCallbackProcess")
@@ -39,6 +42,9 @@ public class TagsInlineCallbackService implements InlineCallbackService {
 
     @Autowired
     private TgUploadedMapper tgUploadedMapper;
+
+    @Autowired
+    private InfoTagsMapper infoTagsMapper;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -125,17 +131,19 @@ public class TagsInlineCallbackService implements InlineCallbackService {
     }
 
     private void sendDocument(ImgLinks links, TgUploaded uploaded, JsonNode origin) {
+        List<InfoTags> tags = tagToImgMapper.getImagesTags(links.getId());
         Map<String, Object> post = new HashMap<>();
         JsonNode chat = origin.get("chat");
         JsonNode from = origin.get("from");
         Long messageId = origin.get("message_id").longValue();
         post.put("reply_to_message_id", messageId);
         post.put("chat_id", chat.get("id").longValue());
-        post.put("caption", MessageFormat.format("@{0} \nAuthor: {1} \n{2}x{3}",
+        post.put("caption", MessageFormat.format("@{0} \nAuthor: {1} \n{2}x{3} \n tags: {4}",
                 Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""),
                 Optional.ofNullable(links.getAuthor()).orElse("无"),
                 Optional.ofNullable(links.getWidth()).orElse(0),
-                Optional.ofNullable(links.getHeight()).orElse(0)));
+                Optional.ofNullable(links.getHeight()).orElse(0),
+                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
         post.put("document", uploaded.getTgid());
         String url = telegramBotProperties.getUrl() + "sendDocument";
         try {

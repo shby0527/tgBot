@@ -1,5 +1,6 @@
 package com.github.shby0527.tgbot.dao;
 
+import com.github.shby0527.tgbot.entities.InfoTags;
 import com.github.shby0527.tgbot.entities.TagFoImgKey;
 import com.github.shby0527.tgbot.entities.TagPopular;
 import org.apache.ibatis.annotations.Param;
@@ -28,4 +29,6 @@ public interface TagToImgMapper {
 
 
     Collection<TagPopular> getTopOfTags(@Param("limit") int limit);
+
+    List<InfoTags> getImagesTags(@Param("imgId") Long imgId);
 }
