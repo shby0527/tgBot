@@ -108,8 +108,9 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         ImgLinks links = (ImgLinks) map.get("image");
         JsonNode chat = (JsonNode) map.get("chat");
         JsonNode rep = (JsonNode) map.get("replay");
-        deleteMessage(chat, rep);
+        rep = editMessage("ご主人さまの捜し物はまもなくお届けます", rep);
         JsonNode backJson = sendDocument("file://" + path, links, chat, scc);
+        deleteMessage(chat, rep);
         log.debug("back json {}", backJson);
         if (Optional.ofNullable(backJson).map(t -> t.get("ok")).map(JsonNode::booleanValue).orElse(false)) {
             TgUploaded tgUploaded = new TgUploaded();
@@ -132,12 +133,11 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         Map<String, Object> map = (Map<String, Object>) ops.get(key);
         if (map == null) return;
         redisTemplate.delete(key);
-        JsonNode chat = (JsonNode) map.get("chat");
+//        JsonNode chat = (JsonNode) map.get("chat");
         JsonNode rep = (JsonNode) map.get("replay");
         Long scc = (Long) map.get("scc");
         if (scc == null) {
-            deleteMessage(chat, rep);
-            sendText("ごめんなさい、なくしちゃだ　QVQ", chat);
+            editMessage("ごめんなさい、なくしちゃだ　QVQ", rep);
         }
     }
 
@@ -179,15 +179,14 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     }
 
 
-    private JsonNode sendText(String text, JsonNode origin) {
+    private JsonNode editMessage(String text, JsonNode origin) {
         Map<String, Object> post = new HashMap<>();
-        JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
-        JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
-        Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
-        post.put("reply_to_message_id", messageId);
-        post.put("text", text + "\n @" + Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""));
-        post.put("chat_id", chat.get("id").longValue());
-        String url = telegramBotProperties.getUrl() + "sendMessage";
+        Long chatId = JSONUtils.readJsonObject(origin, "result.chat.id", Long.class);
+        Long messageId = JSONUtils.readJsonObject(origin, "result.message_id", Long.class);
+        post.put("chat_id", chatId);
+        post.put("message_id", messageId);
+        post.put("text", text);
+        String url = telegramBotProperties.getUrl() + "editMessageText";
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
@@ -201,6 +200,30 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         }
         return null;
     }
+
+
+//    private JsonNode sendText(String text, JsonNode origin) {
+//        Map<String, Object> post = new HashMap<>();
+//        JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
+//        JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
+//        Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
+//        post.put("reply_to_message_id", messageId);
+//        post.put("text", text + "\n @" + Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""));
+//        post.put("chat_id", chat.get("id").longValue());
+//        String url = telegramBotProperties.getUrl() + "sendMessage";
+//        try {
+//            String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
+//            log.debug("post data: {}", json);
+//            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
+//                JsonNode back = response.getJson();
+//                log.debug("return back {}", back);
+//                return back;
+//            }
+//        } catch (IOException e) {
+//            log.error(e.getMessage(), e);
+//        }
+//        return null;
+//    }
 
 
     private JsonNode sendDocument(String picUrl, ImgLinks links, JsonNode origin, Long scc) {
