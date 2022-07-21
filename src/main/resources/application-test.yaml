@@ -105,6 +105,7 @@ bot:
     commands:
       random: randomCommandProcessor
       randompic: randomCommandProcessor
+      tags: popularTagsCommandProcessor
   aria2:
     address: ws://192.168.10.187:6800/jsonrpc
     token: NEPX68EQF6BC

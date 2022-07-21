@@ -108,8 +108,8 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         ImgLinks links = (ImgLinks) map.get("image");
         JsonNode chat = (JsonNode) map.get("chat");
         JsonNode rep = (JsonNode) map.get("replay");
-        JsonNode backJson = sendDocument("file://" + path, links, chat, scc);
         deleteMessage(chat, rep);
+        JsonNode backJson = sendDocument("file://" + path, links, chat, scc);
         log.debug("back json {}", backJson);
         if (Optional.ofNullable(backJson).map(t -> t.get("ok")).map(JsonNode::booleanValue).orElse(false)) {
             TgUploaded tgUploaded = new TgUploaded();
@@ -136,8 +136,8 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         JsonNode rep = (JsonNode) map.get("replay");
         Long scc = (Long) map.get("scc");
         if (scc == null) {
-            sendText("ごめんなさい、なくしちゃだ　QVQ", chat);
             deleteMessage(chat, rep);
+            sendText("ごめんなさい、なくしちゃだ　QVQ", chat);
         }
     }
 

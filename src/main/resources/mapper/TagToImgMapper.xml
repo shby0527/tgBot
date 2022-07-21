@@ -5,6 +5,13 @@
         <id column="imgId" jdbcType="BIGINT" property="imgid"/>
         <id column="tagId" jdbcType="BIGINT" property="tagid"/>
     </resultMap>
+
+    <resultMap id="TagPopular" type="com.github.shby0527.tgbot.entities.TagPopular">
+        <result property="tagId" column="tagId" jdbcType="BIGINT"/>
+        <result property="tag" column="tag" jdbcType="VARCHAR"/>
+        <result property="count" column="c" jdbcType="BIGINT"/>
+    </resultMap>
+
     <insert id="insert">
         <!--
           WARNING - @mbg.generated
@@ -52,6 +59,15 @@
             #{tagId, jdbcType=BIGINT}
         </foreach>
         order by imgId desc
-        limit 500;
+        limit 500
+    </select>
+    <select id="getTopOfTags" resultMap="TagPopular">
+        SELECT tagId,
+        (select it.tag from info_tags it where it.id = tag_fo_img.tagId) tag,
+        count(1) c
+        from tag_fo_img
+        group by tagId
+        order by 3 desc
+        limit #{limit}
     </select>
 </mapper>

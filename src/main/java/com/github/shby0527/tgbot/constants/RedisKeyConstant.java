@@ -9,4 +9,6 @@ public abstract class RedisKeyConstant {
     public static String getWaitingDownloadImage(Long imageId) {
         return MessageFormat.format(WAITING_DOWNLOAD_IMAGE, imageId.toString());
     }
+
+    public final static String POPULAR_TAGS = "popular:tags";
 }

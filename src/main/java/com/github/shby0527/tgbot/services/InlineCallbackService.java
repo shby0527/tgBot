@@ -2,7 +2,7 @@ package com.github.shby0527.tgbot.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface TelegramBotProcessService {
+public interface InlineCallbackService {
 
-    void process(JsonNode jsonNode);
+    void process(String[] arguments, JsonNode origin);
 }

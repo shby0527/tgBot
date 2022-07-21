@@ -1,6 +1,7 @@
 package com.github.shby0527.tgbot.dao;
 
 import com.github.shby0527.tgbot.entities.TagFoImgKey;
+import com.github.shby0527.tgbot.entities.TagPopular;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Collection;
@@ -24,4 +25,7 @@ public interface TagToImgMapper {
     int insertSelective(TagFoImgKey record);
 
     List<Long> tagsIdToImageId(@Param("tagIds") Collection<Long> tagIds);
+
+
+    Collection<TagPopular> getTopOfTags(@Param("limit") int limit);
 }

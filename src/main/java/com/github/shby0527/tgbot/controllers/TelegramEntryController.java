@@ -20,6 +20,7 @@ public class TelegramEntryController {
 
     @PostMapping("rec")
     public String entry(@RequestBody JsonNode json) {
-        return telegramBotProcessService.process(json);
+        telegramBotProcessService.process(json);
+        return "True";
     }
 }
