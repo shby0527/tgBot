@@ -140,7 +140,6 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         Map<String, Object> map = (Map<String, Object>) ops.get(key);
         if (map == null) return;
         redisTemplate.delete(key);
-//        JsonNode chat = (JsonNode) map.get("chat");
         JsonNode rep = (JsonNode) map.get("replay");
         Long scc = (Long) map.get("scc");
         if (scc == null) {
@@ -187,6 +186,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
 
 
     private JsonNode editMessage(String text, JsonNode origin) {
+        if (origin == null) return null;
         Map<String, Object> post = new HashMap<>();
         Long chatId = JSONUtils.readJsonObject(origin, "result.chat.id", Long.class);
         Long messageId = JSONUtils.readJsonObject(origin, "result.message_id", Long.class);
@@ -207,30 +207,6 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         }
         return null;
     }
-
-
-//    private JsonNode sendText(String text, JsonNode origin) {
-//        Map<String, Object> post = new HashMap<>();
-//        JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
-//        JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
-//        Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
-//        post.put("reply_to_message_id", messageId);
-//        post.put("text", text + "\n @" + Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""));
-//        post.put("chat_id", chat.get("id").longValue());
-//        String url = telegramBotProperties.getUrl() + "sendMessage";
-//        try {
-//            String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
-//            log.debug("post data: {}", json);
-//            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-//                JsonNode back = response.getJson();
-//                log.debug("return back {}", back);
-//                return back;
-//            }
-//        } catch (IOException e) {
-//            log.error(e.getMessage(), e);
-//        }
-//        return null;
-//    }
 
 
     private JsonNode sendDocument(String picUrl, ImgLinks links, JsonNode origin, Long scc) {
@@ -269,6 +245,8 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
 
 
     public void deleteMessage(JsonNode origin, JsonNode chat) {
+        if (origin == null) return;
+        if (chat == null) return;
         Map<String, Object> post = new HashMap<>();
         Long chatId = JSONUtils.readJsonObject(origin, "message.chat.id", Long.class);
         post.put("chat_id", chatId);
