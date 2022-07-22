@@ -60,12 +60,18 @@ public class TagsInlineCallbackService implements InlineCallbackService {
 
     @Override
     public void process(String[] arguments, JsonNode origin) {
+        JsonNode rpOrigin = JSONUtils.readJsonObject(origin, "callback_query.message.reply_to_message", JsonNode.class);
+        Long fromUser = JSONUtils.readJsonObject(origin, "callback_query.from.id", Long.class);
+        Long rpFromUser = JSONUtils.readJsonObject(rpOrigin, "from.id", Long.class);
+        if (!fromUser.equals(rpFromUser)) {
+            log.debug("not the origin user, ignored the operate");
+            return;
+        }
         Long tagsId = Long.valueOf(arguments[0]);
         List<Long> imageId = tagToImgMapper.tagsIdToImageId(Collections.singleton(tagsId));
         Collections.shuffle(imageId);
         ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageId.get(0));
         TgUploaded tgUploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());
-        JsonNode rpOrigin = JSONUtils.readJsonObject(origin, "callback_query.message.reply_to_message", JsonNode.class);
         if (tgUploaded != null) {
             deleteMessage(origin);
             sendDocument(links, tgUploaded, rpOrigin);
