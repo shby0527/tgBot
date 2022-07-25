@@ -103,9 +103,30 @@ bot:
       bot_command: botCommandProcessService
   command:
     commands:
-      random: randomCommandProcessor
-      randompic: randomCommandProcessor
-      tags: popularTagsCommandProcessor
+      random:
+        service: randomCommandProcessor
+        description: 随机发送一张图片
+        arguments:
+          - name: regexp
+            option: true
+      randompic:
+        service: randomCommandProcessor
+        description: 随机发送一张图片, random 的别名
+        arguments:
+          - name: regexp
+            option: true
+      tags:
+        service: popularTagsCommandProcessor
+        description: 返回最受欢迎的10个标签
+        arguments: []
+      start:
+        service: helpingCommandProcessor
+        description: 返回本帮助信息，help 的别名
+        arguments: []
+      help:
+        service: helpingCommandProcessor
+        description: 返回本帮助信息
+        arguments: []
   aria2:
     address: ws://192.168.10.187:6800/jsonrpc
     token: NEPX68EQF6BC

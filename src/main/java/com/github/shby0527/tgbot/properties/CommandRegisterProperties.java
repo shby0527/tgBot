@@ -13,5 +13,24 @@ public class CommandRegisterProperties {
 
     public static final String PREFIX = "bot.command";
 
-    private Map<String, String> commands;
+    private Map<String, CommandMetadata> commands;
+
+    @Data
+    public static class CommandMetadata {
+
+        private String service;
+
+        private String description;
+
+        private CommandArguments[] arguments;
+    }
+
+
+    @Data
+    public static class CommandArguments {
+
+        private String name;
+
+        private Boolean option;
+    }
 }
