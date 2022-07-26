@@ -41,7 +41,7 @@ public class HelpingCommandProcessor implements RegisterBotCommandService {
                 .map(JsonNode::textValue)
                 .map(e -> "\n@" + e)
                 .orElse("");
-        StringJoiner joiner = new StringJoiner("\n", "本狐萝卜就看得懂以下指令\n", "\n谢谢您的支持。");
+        StringJoiner joiner = new StringJoiner("\n", "あたしキツネビは、これしか分からないぞ\n", "\n有り難う御座います。");
         commandRegisterProperties.getCommands().forEach((k, v) -> {
             StringBuilder sb = new StringBuilder("/" + k);
             sb.append(" ");
