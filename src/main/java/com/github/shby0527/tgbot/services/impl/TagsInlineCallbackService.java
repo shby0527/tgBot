@@ -18,6 +18,11 @@ import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.bind.BindResult;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
@@ -58,6 +63,16 @@ public class TagsInlineCallbackService implements InlineCallbackService {
     @Autowired
     private Aria2Properties aria2Properties;
 
+    private final Collection<Long> notInTags;
+
+    public TagsInlineCallbackService(Environment environment) {
+        Binder binder = Binder.get(environment);
+        Bindable<List<Long>> bindable = Bindable.listOf(Long.class);
+        BindResult<List<Long>> bind = binder.bind("bot.extarn", bindable);
+        notInTags = bind.orElse(Collections.emptyList());
+    }
+
+
     @Override
     public void process(String[] arguments, JsonNode origin) {
         JsonNode rpOrigin = JSONUtils.readJsonObject(origin, "callback_query.message.reply_to_message", JsonNode.class);
@@ -68,7 +83,7 @@ public class TagsInlineCallbackService implements InlineCallbackService {
             return;
         }
         Long tagsId = Long.valueOf(arguments[0]);
-        List<Long> imageId = tagToImgMapper.tagsIdToImageId(Collections.singleton(tagsId));
+        List<Long> imageId = tagToImgMapper.tagsIdToImageId(Collections.singleton(tagsId), notInTags);
         Collections.shuffle(imageId);
         ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageId.get(0));
         TgUploaded tgUploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());

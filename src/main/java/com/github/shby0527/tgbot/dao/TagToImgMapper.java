@@ -25,7 +25,7 @@ public interface TagToImgMapper {
      */
     int insertSelective(TagFoImgKey record);
 
-    List<Long> tagsIdToImageId(@Param("tagIds") Collection<Long> tagIds);
+    List<Long> tagsIdToImageId(@Param("tagIds") Collection<Long> tagIds, @Param("notTags") Collection<Long> notTags);
 
 
     Collection<TagPopular> getTopOfTags(@Param("limit") int limit);

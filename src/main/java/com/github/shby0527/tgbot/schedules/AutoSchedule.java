@@ -17,6 +17,11 @@ import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.bind.BindResult;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
@@ -56,11 +61,20 @@ public class AutoSchedule {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+    private final Collection<Long> notInTags;
+
+    public AutoSchedule(Environment environment) {
+        Binder binder = Binder.get(environment);
+        Bindable<List<Long>> bindable = Bindable.listOf(Long.class);
+        BindResult<List<Long>> bind = binder.bind("bot.extarn", bindable);
+        notInTags = bind.orElse(Collections.emptyList());
+    }
+
     @Scheduled(cron = "0 20 6 * * ?")
     public void autoSend() {
         for (TelegramBotProperties.AutoChatConfig cfg : properties.getAutoChat()) {
             Collection<Long> tags = infoTagsMapper.selectTagsToId(cfg.getTag());
-            List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags);
+            List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags, notInTags);
             Collections.shuffle(imageIds);
             ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageIds.get(0));
             TgUploaded tgUploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());

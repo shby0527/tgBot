@@ -19,6 +19,11 @@ import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.bind.BindResult;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
@@ -59,6 +64,15 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+    private final Collection<Long> notInTags;
+
+    public RandomCommandProcessor(Environment environment) {
+        Binder binder = Binder.get(environment);
+        Bindable<List<Long>> bindable = Bindable.listOf(Long.class);
+        BindResult<List<Long>> bind = binder.bind("bot.extarn", bindable);
+        notInTags = bind.orElse(Collections.emptyList());
+    }
+
     @Override
     public void process(String[] arguments, JsonNode node) {
         ImgLinks imgLinks = null;
@@ -69,9 +83,11 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         } else {
             Collection<Long> tags = infoTagsMapper.selectTagsToId(arguments[0]);
             if (!tags.isEmpty()) {
-                List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags);
-                Collections.shuffle(imageIds);
-                imgLinks = imgLinksMapper.selectByPrimaryKey(imageIds.get(0));
+                List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags, notInTags);
+                if (!imageIds.isEmpty()) {
+                    Collections.shuffle(imageIds);
+                    imgLinks = imgLinksMapper.selectByPrimaryKey(imageIds.get(0));
+                }
             }
         }
         if (imgLinks == null) {

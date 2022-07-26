@@ -58,6 +58,12 @@
         <foreach collection="tagIds" nullable="false" item="tagId" open="(" close=")" separator=",">
             #{tagId, jdbcType=BIGINT}
         </foreach>
+        <if test="notTags != null and !notTags.isEmpty()">
+            and tagId not in
+            <foreach collection="notTags" nullable="false" item="ntgId" open="(" close=")" separator=",">
+                #{ntgId, jdbcType=BIGINT}
+            </foreach>
+        </if>
         order by imgId desc
         limit 500
     </select>
