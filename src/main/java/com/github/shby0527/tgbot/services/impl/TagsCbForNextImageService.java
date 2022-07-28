@@ -60,6 +60,13 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         Long nextId = Long.parseLong(arguments[0]);
         Long tagId = Long.parseLong(arguments[1]);
         TagFoImgKey imageKey = tagToImgMapper.getImageKey(tagId, nextId);
+        if (imageKey == null) {
+            sendText("もうないよ", origin);
+            Long chatId = JSONUtils.readJsonObject(origin, "callback_query.message.chat.id", Long.class);
+            Long messageId = JSONUtils.readJsonObject(origin, "callback_query.message.message_id", Long.class);
+            clearMessageKeyboard(chatId, messageId);
+            return;
+        }
         ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageKey.getImgid());
         TgUploaded tgUploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());
         if (tgUploaded != null) {
