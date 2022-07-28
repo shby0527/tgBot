@@ -1,6 +1,5 @@
 package com.github.shby0527.tgbot.schedules;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.ImgLinksMapper;
 import com.github.shby0527.tgbot.dao.InfoTagsMapper;
@@ -15,9 +14,7 @@ import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.RandomUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.bind.BindResult;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -31,7 +28,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
-import java.text.MessageFormat;
 import java.util.*;
 
 @Slf4j
@@ -79,10 +75,11 @@ public class AutoSchedule {
             ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageIds.get(0));
             TgUploaded tgUploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());
             if (tgUploaded != null) {
-                sendDocument(links, tgUploaded, cfg.getChatId());
+                sendDocument(tgUploaded, cfg.getChatId());
                 continue;
             }
             Map<String, Object> saveStatus = new HashMap<>(2);
+            saveStatus.put("service", "scheduledCallbackService");
             saveStatus.put("image", links);
             saveStatus.put("scc", cfg.getChatId());
             String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
@@ -113,7 +110,7 @@ public class AutoSchedule {
     }
 
 
-    private void sendDocument(ImgLinks links, TgUploaded uploaded, Long chatId) {
+    private void sendDocument(TgUploaded uploaded, Long chatId) {
         Map<String, Object> post = new HashMap<>();
         post.put("chat_id", chatId);
         post.put("document", uploaded.getTgid());

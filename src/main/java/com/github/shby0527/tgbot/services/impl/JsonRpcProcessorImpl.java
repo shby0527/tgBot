@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -65,6 +67,9 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
 
     private final Map<String, BiConsumer<WebSocketSession, JsonNode>> METHOD_CALL;
 
+
+    private final Map<String, BiFunction<String, Map<String, Object>, JsonNode>> SEND_DOCUMENT_PARAMETERS;
+
     public JsonRpcProcessorImpl() {
         CALLBACK = new HashMap<>();
         CALLBACK.put("getFile", this::getFileCallback);
@@ -72,6 +77,9 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         METHOD_CALL = new HashMap<>();
         METHOD_CALL.put("aria2.onDownloadError", this::downloadError);
         METHOD_CALL.put("aria2.onDownloadComplete", this::downloadComplete);
+        SEND_DOCUMENT_PARAMETERS = new HashMap<>();
+        SEND_DOCUMENT_PARAMETERS.put("chatRandomCallbackService", this::chatRandomParameters);
+        SEND_DOCUMENT_PARAMETERS.put("scheduledCallbackService", this::scheduledCallbackService);
     }
 
 
@@ -111,13 +119,11 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         Map<String, Object> map = (Map<String, Object>) ops.get(key);
         if (map == null) return;
         redisTemplate.delete(key);
-        Long scc = (Long) map.get("scc");
-        ImgLinks links = (ImgLinks) map.get("image");
-        JsonNode chat = (JsonNode) map.get("chat");
-        JsonNode rep = (JsonNode) map.get("replay");
-        rep = editMessage("ご主人さまの捜し物はまもなくお届けます", rep);
-        JsonNode backJson = sendDocument("file://" + path, links, chat, scc);
-        deleteMessage(chat, rep);
+        Object service = map.get("service");
+        if (service == null) return;
+        BiFunction<String, Map<String, Object>, JsonNode> function = SEND_DOCUMENT_PARAMETERS.get(service);
+        if (function == null) return;
+        JsonNode backJson = function.apply(path, map);
         log.debug("back json {}", backJson);
         if (Optional.ofNullable(backJson).map(t -> t.get("ok")).map(JsonNode::booleanValue).orElse(false)) {
             TgUploaded tgUploaded = new TgUploaded();
@@ -209,25 +215,40 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     }
 
 
-    private JsonNode sendDocument(String picUrl, ImgLinks links, JsonNode origin, Long scc) {
+    private JsonNode chatRandomParameters(String path, Map<String, Object> status) {
+        ImgLinks links = (ImgLinks) status.get("image");
+        JsonNode origin = (JsonNode) status.get("chat");
+        JsonNode rep = (JsonNode) status.get("replay");
+        rep = editMessage("ご主人さまの捜し物はまもなくお届けます", rep);
         Map<String, Object> post = new HashMap<>();
-        if (scc == null) {
-            List<InfoTags> tags = tagToImgMapper.getImagesTags(links.getId());
-            JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
-            JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
-            Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
-            post.put("reply_to_message_id", messageId);
-            post.put("chat_id", chat.get("id").longValue());
-            post.put("caption", MessageFormat.format("@{0} \nAuthor: {1} \n{2}x{3}, \ntags: {4}",
-                    Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""),
-                    Optional.ofNullable(links.getAuthor()).orElse("无"),
-                    Optional.ofNullable(links.getWidth()).orElse(0),
-                    Optional.ofNullable(links.getHeight()).orElse(0),
-                    tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
-        } else {
-            post.put("chat_id", scc);
-        }
-        post.put("document", picUrl);
+        List<InfoTags> tags = tagToImgMapper.getImagesTags(links.getId());
+        JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
+        JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
+        Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
+        post.put("reply_to_message_id", messageId);
+        post.put("chat_id", chat.get("id").longValue());
+        post.put("caption", MessageFormat.format("@{0} \nAuthor: {1} \n{2}x{3}, \ntags: {4}",
+                Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""),
+                Optional.ofNullable(links.getAuthor()).orElse("无"),
+                Optional.ofNullable(links.getWidth()).orElse(0),
+                Optional.ofNullable(links.getHeight()).orElse(0),
+                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
+        JsonNode backJson = sendDocument("file://" + path, post);
+        deleteMessage(origin, rep);
+        return backJson;
+    }
+
+    private JsonNode scheduledCallbackService(String path, Map<String, Object> status) {
+        Long scc = (Long) status.get("scc");
+        Map<String, Object> post = new HashMap<>();
+        post.put("chat_id", scc);
+        return sendDocument(path, post);
+    }
+
+
+    private JsonNode sendDocument(String path, Map<String, Object> post) {
+
+        post.put("document", path);
         String url = telegramBotProperties.getUrl() + "sendDocument";
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);

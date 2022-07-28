@@ -102,6 +102,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         JsonNode rep = sendText("ご主人さまの探しものが見つかったぞ、いまダウロード中", node);
         // 这里发送websocket的消息，下载图片
         Map<String, Object> saveStatus = new HashMap<>(2);
+        saveStatus.put("service", "chatRandomCallbackService");
         saveStatus.put("image", imgLinks);
         saveStatus.put("chat", node);
         saveStatus.put("replay", rep);

@@ -98,6 +98,7 @@ public class TagsInlineCallbackService implements InlineCallbackService {
         JsonNode jsonNode = JSONUtils.OBJECT_MAPPER.valueToTree(chat);
         // 这里发送websocket的消息，下载图片
         Map<String, Object> saveStatus = new HashMap<>(2);
+        saveStatus.put("service", "chatRandomCallbackService");
         saveStatus.put("image", links);
         saveStatus.put("chat", jsonNode);
         saveStatus.put("replay", rep);
