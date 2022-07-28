@@ -115,6 +115,12 @@ bot:
         arguments:
           - name: regexp
             option: true
+      search:
+        service: searchCommandProcessor
+        description: 搜索相关的tag
+        arguments:
+          - name: regexp
+            option: false
       tags:
         service: popularTagsCommandProcessor
         description: 返回最受欢迎的10个标签

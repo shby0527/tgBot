@@ -4,6 +4,7 @@ import com.github.shby0527.tgbot.entities.InfoTags;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface InfoTagsMapper {
     /**
@@ -47,4 +48,6 @@ public interface InfoTagsMapper {
     int updateByPrimaryKey(InfoTags record);
 
     Collection<Long> selectTagsToId(@Param("tag") String tag);
+
+    List<InfoTags> selectByTags(@Param("tag") String tag, @Param("before") Long before, @Param("limit") Integer limit);
 }

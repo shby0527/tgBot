@@ -109,4 +109,17 @@
         where
         `tag` regexp #{tag, jdbcType=VARCHAR}
     </select>
+
+    <select id="selectByTags" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from info_tags
+        where
+        `tag` regexp #{tag, jdbcType=VARCHAR}
+        <if test="before != null and before != 0">
+            and `id` &gt; #{before, jdbcType=BIGINT}
+        </if>
+        order by `id`
+        limit #{limit,jdbcType=INTEGER}
+    </select>
 </mapper>

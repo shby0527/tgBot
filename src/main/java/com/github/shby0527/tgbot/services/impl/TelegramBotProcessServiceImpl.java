@@ -28,7 +28,7 @@ public class TelegramBotProcessServiceImpl implements TelegramBotProcessService 
     @Autowired
     private Map<String, InlineCallbackService> inlineCallbackServiceMap;
 
-    private static final Pattern INLINE_CALLBACK_PATTERN = Pattern.compile("^(\\w+)=(.*)$");
+    private static final Pattern INLINE_CALLBACK_PATTERN = Pattern.compile("^(\\w+)=(.*)?$");
 
     @Override
     @Async("statsExecutor")
@@ -56,7 +56,10 @@ public class TelegramBotProcessServiceImpl implements TelegramBotProcessService 
                 return;
             }
             String service = matcher.group(1);
-            String[] arguments = matcher.group(2).split(",");
+            String[] arguments = new String[0];
+            if (matcher.groupCount() > 2) {
+                arguments = matcher.group(2).split(",");
+            }
             InlineCallbackService inlineCallbackService = inlineCallbackServiceMap.get(service);
             if (inlineCallbackService == null) return;
             inlineCallbackService.process(arguments, jsonNode);
