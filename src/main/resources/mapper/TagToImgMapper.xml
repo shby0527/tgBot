@@ -82,4 +82,15 @@
         left join tag_fo_img tfi on it.id = tfi.tagId
         where tfi.imgId = #{imgId}
     </select>
+
+    <select id="getImageKey" resultMap="BaseResultMap">
+        SELECT *
+        from tag_fo_img
+        where tagId = #{tagId, jdbcType=BIGINT}
+        <if test="nextId != null and nextId != 0">
+            and imgId &lt; #{nextId, jdbcType=BIGINT}
+        </if>
+        order by imgId desc
+        limit 1
+    </select>
 </mapper>

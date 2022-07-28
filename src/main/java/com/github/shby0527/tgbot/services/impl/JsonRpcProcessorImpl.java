@@ -28,10 +28,7 @@ import org.springframework.web.socket.WebSocketSession;
 import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -80,6 +77,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         SEND_DOCUMENT_PARAMETERS = new HashMap<>();
         SEND_DOCUMENT_PARAMETERS.put("chatRandomCallbackService", this::chatRandomParameters);
         SEND_DOCUMENT_PARAMETERS.put("scheduledCallbackService", this::scheduledCallbackService);
+        SEND_DOCUMENT_PARAMETERS.put("selectionNextImage", this::selectionNextImage);
     }
 
 
@@ -149,7 +147,9 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         JsonNode rep = (JsonNode) map.get("replay");
         Long scc = (Long) map.get("scc");
         if (scc == null) {
-            editMessage("ごめんなさい、なくしちゃだ　QVQ", rep);
+            Long chatId = JSONUtils.readJsonObject(rep, "result.chat.id", Long.class);
+            Long messageId = JSONUtils.readJsonObject(rep, "result.message_id", Long.class);
+            editMessage("ごめんなさい、なくしちゃだ　QVQ", chatId, messageId);
         }
     }
 
@@ -191,11 +191,8 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     }
 
 
-    private JsonNode editMessage(String text, JsonNode origin) {
-        if (origin == null) return null;
+    private JsonNode editMessage(String text, Long chatId, Long messageId) {
         Map<String, Object> post = new HashMap<>();
-        Long chatId = JSONUtils.readJsonObject(origin, "result.chat.id", Long.class);
-        Long messageId = JSONUtils.readJsonObject(origin, "result.message_id", Long.class);
         post.put("chat_id", chatId);
         post.put("message_id", messageId);
         post.put("text", text);
@@ -215,11 +212,41 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     }
 
 
+    private JsonNode selectionNextImage(String path, Map<String, Object> status) {
+        ImgLinks image = (ImgLinks) status.get("image");
+        JsonNode selection = (JsonNode) status.get("selection");
+        Long tagId = (Long) status.get("tagId");
+        Long chatId = JSONUtils.readJsonObject(selection, "callback_query.message.chat.id", Long.class);
+        Long messageId = JSONUtils.readJsonObject(selection, "callback_query.message.message_id", Long.class);
+        editMessage("ご主人さまの捜し物はまもなくお届けます", chatId, messageId);
+        Map<String, Object> post = new HashMap<>();
+        List<InfoTags> tags = tagToImgMapper.getImagesTags(image.getId());
+        post.put("caption", MessageFormat.format("\nAuthor: {0} \n{1}x{2} \n tags: {3}",
+                Optional.ofNullable(image.getAuthor()).orElse("无"),
+                Optional.ofNullable(image.getWidth()).orElse(0),
+                Optional.ofNullable(image.getHeight()).orElse(0),
+                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
+        Map<String, Object> reply_markup = new HashMap<>(1);
+        post.put("reply_markup", reply_markup);
+        List<List<Map<String, String>>> keyboard = new ArrayList<>();
+        Map<String, String> np = new HashMap<>();
+        np.put("text", "次をちょうだい");
+        np.put("callback_data", "tagsCbForNextImage=" + image.getId() + "," + tagId);
+        keyboard.add(Collections.singletonList(np));
+        reply_markup.put("inline_keyboard", keyboard);
+        JsonNode backJson = sendDocument("file://" + path, post);
+        deleteMessage(chatId, messageId);
+        return backJson;
+    }
+
+
     private JsonNode chatRandomParameters(String path, Map<String, Object> status) {
         ImgLinks links = (ImgLinks) status.get("image");
         JsonNode origin = (JsonNode) status.get("chat");
         JsonNode rep = (JsonNode) status.get("replay");
-        rep = editMessage("ご主人さまの捜し物はまもなくお届けます", rep);
+        Long rChatId = JSONUtils.readJsonObject(rep, "result.chat.id", Long.class);
+        Long rMessageId = JSONUtils.readJsonObject(rep, "result.message_id", Long.class);
+        rep = editMessage("ご主人さまの捜し物はまもなくお届けます", rChatId, rMessageId);
         Map<String, Object> post = new HashMap<>();
         List<InfoTags> tags = tagToImgMapper.getImagesTags(links.getId());
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
@@ -234,7 +261,8 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
                 Optional.ofNullable(links.getHeight()).orElse(0),
                 tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
         JsonNode backJson = sendDocument("file://" + path, post);
-        deleteMessage(origin, rep);
+        Long chatId = JSONUtils.readJsonObject(origin, "message.chat.id", Long.class);
+        deleteMessage(chatId, rMessageId);
         return backJson;
     }
 
@@ -265,13 +293,11 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     }
 
 
-    public void deleteMessage(JsonNode origin, JsonNode chat) {
-        if (origin == null) return;
-        if (chat == null) return;
+    public void deleteMessage(Long chatId, Long messageId) {
         Map<String, Object> post = new HashMap<>();
-        Long chatId = JSONUtils.readJsonObject(origin, "message.chat.id", Long.class);
+
         post.put("chat_id", chatId);
-        Long messageId = JSONUtils.readJsonObject(chat, "result.message_id", Long.class);
+
         post.put("message_id", messageId);
         String url = telegramBotProperties.getUrl() + "deleteMessage";
         try {

@@ -31,4 +31,7 @@ public interface TagToImgMapper {
     Collection<TagPopular> getTopOfTags(@Param("limit") int limit);
 
     List<InfoTags> getImagesTags(@Param("imgId") Long imgId);
+
+
+    TagFoImgKey getImageKey(@Param("tagId") Long tagId, @Param("nextId") Long nextId);
 }
