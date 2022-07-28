@@ -36,7 +36,7 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
     private TelegramBotProperties botProperties;
 
     @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedisTemplate<String, Map<String, Object>> redisTemplate;
 
     @Override
     public void process(String[] arguments, JsonNode node) {
@@ -104,12 +104,12 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
     private String pagination(String condition, Long lastId) {
         String uuid = UUID.randomUUID().toString();
         String key = RedisKeyConstant.getTagNextPageTo(uuid);
-        ValueOperations<String, Object> ops = redisTemplate.opsForValue();
+        ValueOperations<String, Map<String, Object>> ops = redisTemplate.opsForValue();
         Map<String, Object> pagination = new HashMap<>(2);
         pagination.put("condition", condition);
         pagination.put("next", lastId);
         pagination.put("current", 1);
-        pagination.put("prev", 0);
+        pagination.put("prev", Collections.singletonList(0L));
         ops.set(key, pagination, 10, TimeUnit.MINUTES);
         return uuid;
     }

@@ -57,7 +57,7 @@ public class TelegramBotProcessServiceImpl implements TelegramBotProcessService 
             }
             String service = matcher.group(1);
             String[] arguments = new String[0];
-            if (matcher.groupCount() > 2) {
+            if (matcher.groupCount() >= 2) {
                 arguments = matcher.group(2).split(",");
             }
             InlineCallbackService inlineCallbackService = inlineCallbackServiceMap.get(service);
