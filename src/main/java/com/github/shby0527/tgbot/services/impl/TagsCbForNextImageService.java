@@ -70,8 +70,18 @@ public class TagsCbForNextImageService implements InlineCallbackService {
 
     }
 
+
     private void sendDownloadedImage(ImgLinks links, JsonNode node, Long tagId) {
-        JsonNode replay = editMessage("ダウロード中、しばらくお待ち下さい", node);
+        JsonNode message = JSONUtils.readJsonObject(node, "callback_query.message", JsonNode.class);
+        JsonNode replay = null;
+        if (!message.has("document")) {
+            replay = editMessage("ダウロード中、しばらくお待ち下さい", node);
+        } else {
+            replay = sendText("ダウロード中、しばらくお待ち下さい", node);
+            Long chatId = JSONUtils.readJsonObject(node, "callback_query.message.chat.id", Long.class);
+            Long messageId = JSONUtils.readJsonObject(node, "callback_query.message.message_id", Long.class);
+            clearMessageKeyboard(chatId, messageId);
+        }
         Map<String, Object> saveStatus = new HashMap<>(2);
         saveStatus.put("service", "selectionNextImage");
         saveStatus.put("image", links);
@@ -102,6 +112,43 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         } catch (IOException e) {
             log.debug("获取 session 失败", e);
             editMessage("ご主人さまの探しものがなくなっちゃった、うぅぅぅぅQVQ", node);
+        }
+    }
+
+    private JsonNode sendText(String text, JsonNode origin) {
+        Map<String, Object> post = new HashMap<>();
+        JsonNode chat = JSONUtils.readJsonObject(origin, "callback_query.message.chat", JsonNode.class);
+        post.put("text", text);
+        post.put("chat_id", chat.get("id").longValue());
+        String url = botProperties.getUrl() + "sendMessage";
+        try {
+            String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
+            log.debug("post data: {}", json);
+            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
+                JsonNode back = response.getJson();
+                log.debug("return back {}", back);
+                return back;
+            }
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+        }
+        return null;
+    }
+
+    private void clearMessageKeyboard(Long chatId, Long messageId) {
+        String url = botProperties.getUrl() + "editMessageReplyMarkup";
+        Map<String, Object> post = new HashMap<>();
+        post.put("chat_id", chatId);
+        post.put("message_id", messageId);
+        try {
+            String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
+            log.debug("post data: {}", json);
+            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
+                JsonNode back = response.getJson();
+                log.debug("return back {}", back);
+            }
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
         }
     }
 

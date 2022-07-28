@@ -214,13 +214,14 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
 
     private JsonNode selectionNextImage(String path, Map<String, Object> status) {
         ImgLinks image = (ImgLinks) status.get("image");
-        JsonNode selection = (JsonNode) status.get("selection");
+        JsonNode replay = (JsonNode) status.get("replay");
         Long tagId = (Long) status.get("tagId");
-        Long chatId = JSONUtils.readJsonObject(selection, "callback_query.message.chat.id", Long.class);
-        Long messageId = JSONUtils.readJsonObject(selection, "callback_query.message.message_id", Long.class);
+        Long chatId = JSONUtils.readJsonObject(replay, "result.chat.id", Long.class);
+        Long messageId = JSONUtils.readJsonObject(replay, "result.message_id", Long.class);
         editMessage("ご主人さまの捜し物はまもなくお届けます", chatId, messageId);
         Map<String, Object> post = new HashMap<>();
         List<InfoTags> tags = tagToImgMapper.getImagesTags(image.getId());
+        post.put("chat_id", chatId);
         post.put("caption", MessageFormat.format("\nAuthor: {0} \n{1}x{2} \n tags: {3}",
                 Optional.ofNullable(image.getAuthor()).orElse("无"),
                 Optional.ofNullable(image.getWidth()).orElse(0),
@@ -246,7 +247,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         JsonNode rep = (JsonNode) status.get("replay");
         Long rChatId = JSONUtils.readJsonObject(rep, "result.chat.id", Long.class);
         Long rMessageId = JSONUtils.readJsonObject(rep, "result.message_id", Long.class);
-        rep = editMessage("ご主人さまの捜し物はまもなくお届けます", rChatId, rMessageId);
+        editMessage("ご主人さまの捜し物はまもなくお届けます", rChatId, rMessageId);
         Map<String, Object> post = new HashMap<>();
         List<InfoTags> tags = tagToImgMapper.getImagesTags(links.getId());
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
