@@ -183,6 +183,7 @@ public class TagsCbForNextImageService implements InlineCallbackService {
 
 
     private void sendExistsImage(ImgLinks links, TgUploaded uploaded, JsonNode origin, Long tagId) {
+
         Long chatId = JSONUtils.readJsonObject(origin, "callback_query.message.chat.id", Long.class);
         Long messageId = JSONUtils.readJsonObject(origin, "callback_query.message.message_id", Long.class);
         List<InfoTags> tags = tagToImgMapper.getImagesTags(uploaded.getImgid());
@@ -213,7 +214,12 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
-        deleteMessage(chatId, messageId);
+        JsonNode message = JSONUtils.readJsonObject(origin, "callback_query.message", JsonNode.class);
+        if (message.has("document")) {
+            clearMessageKeyboard(chatId, messageId);
+        } else {
+            deleteMessage(chatId, messageId);
+        }
     }
 
     private void deleteMessage(Long chatId, Long messageId) {
