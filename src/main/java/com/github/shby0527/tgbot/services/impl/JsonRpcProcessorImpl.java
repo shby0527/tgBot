@@ -271,7 +271,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         Long scc = (Long) status.get("scc");
         Map<String, Object> post = new HashMap<>();
         post.put("chat_id", scc);
-        return sendDocument(path, post);
+        return sendDocument("file://" + path, post);
     }
 
 
