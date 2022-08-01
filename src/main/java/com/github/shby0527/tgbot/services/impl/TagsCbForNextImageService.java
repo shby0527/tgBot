@@ -81,7 +81,7 @@ public class TagsCbForNextImageService implements InlineCallbackService {
     private void sendDownloadedImage(ImgLinks links, JsonNode node, Long tagId) {
         JsonNode message = JSONUtils.readJsonObject(node, "callback_query.message", JsonNode.class);
         JsonNode replay = null;
-        if (!message.has("document")) {
+        if (!message.has("document") && !message.has("video")) {
             replay = editMessage("ダウロード中、しばらくお待ち下さい", node);
         } else {
             replay = sendText("ダウロード中、しばらくお待ち下さい", node);
