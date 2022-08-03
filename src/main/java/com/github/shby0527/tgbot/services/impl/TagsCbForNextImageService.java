@@ -81,6 +81,10 @@ public class TagsCbForNextImageService implements InlineCallbackService {
     private void sendDownloadedImage(ImgLinks links, JsonNode node, Long tagId) {
         JsonNode message = JSONUtils.readJsonObject(node, "callback_query.message", JsonNode.class);
         JsonNode replay = null;
+        String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
+        if (Optional.ofNullable(redisTemplate.hasKey(key)).orElse(false)) {
+            return;
+        }
         if (!message.has("document") && !message.has("video")) {
             replay = editMessage("ダウロード中、しばらくお待ち下さい", node);
         } else {
@@ -95,7 +99,6 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         saveStatus.put("selection", node);
         saveStatus.put("tagId", tagId);
         saveStatus.put("replay", replay);
-        String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         ops.set(key, saveStatus);
         // 通过websocket 开始下载

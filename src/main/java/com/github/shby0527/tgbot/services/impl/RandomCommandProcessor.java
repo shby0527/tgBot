@@ -99,6 +99,10 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
             sendDocument(imgLinks, uploaded, node);
             return;
         }
+        String key = RedisKeyConstant.getWaitingDownloadImage(imgLinks.getId());
+        if (Optional.ofNullable(redisTemplate.hasKey(key)).orElse(false)) {
+            return;
+        }
         JsonNode rep = sendText("ご主人さまの探しものが見つかったぞ、いまダウロード中", node);
         // 这里发送websocket的消息，下载图片
         Map<String, Object> saveStatus = new HashMap<>(2);
@@ -106,7 +110,6 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         saveStatus.put("image", imgLinks);
         saveStatus.put("chat", node);
         saveStatus.put("replay", rep);
-        String key = RedisKeyConstant.getWaitingDownloadImage(imgLinks.getId());
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         ops.set(key, saveStatus);
         // 通过websocket 开始下载

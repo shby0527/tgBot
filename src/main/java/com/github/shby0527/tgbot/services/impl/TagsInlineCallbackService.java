@@ -92,6 +92,10 @@ public class TagsInlineCallbackService implements InlineCallbackService {
             sendDocument(links, tgUploaded, rpOrigin);
             return;
         }
+        String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
+        if (Optional.ofNullable(redisTemplate.hasKey(key)).orElse(false)) {
+            return;
+        }
         JsonNode rep = editMessage("今、ダウロード中、しばらくお待ち下さい", origin);
         Map<String, JsonNode> chat = new HashMap<>();
         chat.put("message", rpOrigin);
@@ -102,7 +106,6 @@ public class TagsInlineCallbackService implements InlineCallbackService {
         saveStatus.put("image", links);
         saveStatus.put("chat", jsonNode);
         saveStatus.put("replay", rep);
-        String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         ops.set(key, saveStatus);
         // 通过websocket 开始下载
