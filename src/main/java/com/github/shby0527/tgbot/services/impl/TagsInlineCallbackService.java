@@ -74,7 +74,7 @@ public class TagsInlineCallbackService implements InlineCallbackService {
 
 
     @Override
-    public void process(String[] arguments, JsonNode origin) {
+    public synchronized void process(String[] arguments, JsonNode origin) {
         JsonNode rpOrigin = JSONUtils.readJsonObject(origin, "callback_query.message.reply_to_message", JsonNode.class);
         Long fromUser = JSONUtils.readJsonObject(origin, "callback_query.from.id", Long.class);
         Long rpFromUser = JSONUtils.readJsonObject(rpOrigin, "from.id", Long.class);

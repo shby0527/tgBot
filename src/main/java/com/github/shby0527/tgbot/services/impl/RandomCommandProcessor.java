@@ -74,7 +74,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
     }
 
     @Override
-    public void process(String[] arguments, JsonNode node) {
+    public synchronized void process(String[] arguments, JsonNode node) {
         ImgLinks imgLinks = null;
         if (arguments.length == 0) {
             ImgLinks links = imgLinksMapper.getLatestImage();

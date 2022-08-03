@@ -78,7 +78,7 @@ public class TagsCbForNextImageService implements InlineCallbackService {
     }
 
 
-    private void sendDownloadedImage(ImgLinks links, JsonNode node, Long tagId) {
+    private synchronized void sendDownloadedImage(ImgLinks links, JsonNode node, Long tagId) {
         JsonNode message = JSONUtils.readJsonObject(node, "callback_query.message", JsonNode.class);
         JsonNode replay = null;
         String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
