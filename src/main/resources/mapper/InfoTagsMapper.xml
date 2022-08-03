@@ -108,6 +108,7 @@
         from info_tags
         where
         `tag` regexp #{tag, jdbcType=VARCHAR}
+        limit 50
     </select>
 
     <select id="selectByTags" resultMap="BaseResultMap">
