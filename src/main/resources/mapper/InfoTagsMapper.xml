@@ -107,7 +107,7 @@
         id
         from info_tags
         where
-        `tag` regexp #{tag, jdbcType=VARCHAR}
+        MATCH (tag) against(concat('*',#{tag, jdbcType=VARCHAR},'*') in boolean mode)
         limit 50
     </select>
 
@@ -116,7 +116,7 @@
         <include refid="Base_Column_List"/>
         from info_tags
         where
-        `tag` regexp #{tag, jdbcType=VARCHAR}
+        MATCH (tag) against(concat('*',#{tag, jdbcType=VARCHAR},'*') in boolean mode)
         <if test="before != null and before != 0">
             and `id` &gt; #{before, jdbcType=BIGINT}
         </if>
