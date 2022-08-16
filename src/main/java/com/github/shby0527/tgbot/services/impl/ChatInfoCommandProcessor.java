@@ -45,7 +45,7 @@ public class ChatInfoCommandProcessor implements RegisterBotCommandService {
                 userinfo.getFirstname(), userinfo.getLastname(),
                 Optional.ofNullable(chat.get("title")).map(JsonNode::textValue).orElse("private chat"),
                 chat.get("type").textValue(),
-                chat.get("id").textValue());
+                Long.toString(chat.get("id").longValue()));
         sendText(text, node);
     }
 
