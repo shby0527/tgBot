@@ -44,6 +44,7 @@ public class UserInfoCommandProcessor implements RegisterBotCommandService {
             userinfo.setId(id);
             userinfo.setFirstname(from.get("first_name").textValue());
             userinfo.setLastname(from.get("last_name").textValue());
+            userinfo.setLanguageCode(Optional.ofNullable(from.get("language_code")).map(JsonNode::textValue).orElse("jp"));
             userinfo.setPermission(0);
             userInfoMapper.insertSelective(userinfo);
         }

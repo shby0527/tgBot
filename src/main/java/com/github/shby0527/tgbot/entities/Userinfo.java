@@ -12,7 +12,7 @@ import java.io.Serializable;
 public class Userinfo implements Serializable {
     /**
      * 用户ID
-     *
+     * <p>
      * Table:     userInfo
      * Column:    id
      * Nullable:  false
@@ -21,7 +21,7 @@ public class Userinfo implements Serializable {
 
     /**
      * 姓名
-     *
+     * <p>
      * Table:     userInfo
      * Column:    firstName
      * Nullable:  true
@@ -35,9 +35,11 @@ public class Userinfo implements Serializable {
      */
     private String lastname;
 
+    private String languageCode;
+
     /**
      * 0: 普通人， 1: 管理，可以使用一些管理指令, 2: own 可以无限制使用所有指令
-     *
+     * <p>
      * Table:     userInfo
      * Column:    permission
      * Nullable:  true
