@@ -31,6 +31,9 @@ public class HelpingCommandProcessor implements RegisterBotCommandService {
 
     @Override
     public void process(String[] arguments, JsonNode origin) {
+        String type = JSONUtils.readJsonObject(origin, "message.chat.type", String.class);
+        // 非私聊不处理
+        if (!"private".equals(type)) return;
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
         JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
         Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);

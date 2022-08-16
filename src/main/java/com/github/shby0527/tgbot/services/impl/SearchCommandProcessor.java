@@ -40,6 +40,9 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
 
     @Override
     public void process(String[] arguments, JsonNode node) {
+        String type = JSONUtils.readJsonObject(node, "message.chat.type", String.class);
+        // 非私聊不处理
+        if (!"private".equals(type)) return;
         if (arguments == null || arguments.length == 0) {
             sendText("何が探すの？教えて", node, null, null);
             return;

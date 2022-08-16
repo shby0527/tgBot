@@ -133,6 +133,10 @@ bot:
         service: helpingCommandProcessor
         description: 返回本帮助信息
         arguments: []
+      myinfo:
+        service: userInfoCommandProcessor
+        description: 我的信息
+        arguments: []
   aria2:
     address: ws://192.168.10.187:6800/jsonrpc
     token: NEPX68EQF6BC
