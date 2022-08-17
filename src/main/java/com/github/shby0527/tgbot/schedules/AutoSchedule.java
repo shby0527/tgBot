@@ -33,7 +33,7 @@ public class AutoSchedule {
     public void autoSend() {
         if (schedulerServiceMap.isEmpty()) return;
         ZonedDateTime now = ZonedDateTime.now();
-        long timestamp = Date.from(now.toInstant()).getTime() - 10;
+        long timestamp = Date.from(now.toInstant()).getTime();
         List<Userjobs> allJobs = userJobsMapper.getAllJobs();
         allJobs.stream()
                 .filter(p -> p.getNexttruck() <= timestamp)
@@ -45,11 +45,11 @@ public class AutoSchedule {
                         CronExpression expression = CronExpression.parse(p.getCorn());
                         ZonedDateTime next = expression.next(now);
                         if (next == null) return;
-                        nextTruck = Date.from(next.toInstant()).getTime();
+                        nextTruck = Date.from(next.toInstant()).getTime() - 10;
                     } else {
                         try {
                             Duration duration = Duration.parse(p.getCorn());
-                            nextTruck = timestamp + duration.getSeconds() * 1000;
+                            nextTruck = timestamp + duration.getSeconds() * 1000 - 10;
                         } catch (Throwable t) {
                             return;
                         }
