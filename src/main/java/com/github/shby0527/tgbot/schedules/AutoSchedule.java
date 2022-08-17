@@ -33,7 +33,7 @@ public class AutoSchedule {
     public void autoSend() {
         if (schedulerServiceMap.isEmpty()) return;
         ZonedDateTime now = ZonedDateTime.now();
-        long timestamp = Date.from(now.toInstant()).getTime();
+        long timestamp = Date.from(now.toInstant()).getTime() - 10;
         List<Userjobs> allJobs = userJobsMapper.getAllJobs();
         allJobs.stream()
                 .filter(p -> p.getNexttruck() <= timestamp)
