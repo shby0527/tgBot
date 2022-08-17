@@ -61,7 +61,7 @@ public class AutoSendSchedulerService implements SchedulerService {
     public void scheduler(Long chatId, String arguments) {
         if (StringUtils.isEmpty(arguments)) return;
         Collection<Long> tags = infoTagsMapper.selectTagsToId(arguments);
-        List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags, Collections.emptyList());
+        List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags, null);
         Collections.shuffle(imageIds);
         ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageIds.get(0));
         TgUploaded tgUploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());
