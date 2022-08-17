@@ -141,6 +141,16 @@ bot:
         service: chatInfoCommandProcessor
         description: 当前聊天窗口的信息
         arguments: []
+      addtrigger:
+        service: addTriggerCommandProcessor
+        description: 设置一个定时任务
+        arguments:
+          - name: 名称
+            option: false
+          - name: 搜索条件
+            option: false
+          - name: iso8601 Duration 表达式/Corn表达式
+            option: false
   aria2:
     address: ws://192.168.10.187:6800/jsonrpc
     token: NEPX68EQF6BC
