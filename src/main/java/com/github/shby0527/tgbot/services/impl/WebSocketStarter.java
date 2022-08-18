@@ -11,6 +11,9 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 
+import javax.websocket.ContainerProvider;
+import javax.websocket.WebSocketContainer;
+
 @Slf4j
 @Service
 public class WebSocketStarter implements ApplicationRunner {
@@ -23,7 +26,10 @@ public class WebSocketStarter implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        StandardWebSocketClient webSocketClient = new StandardWebSocketClient();
+        WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+        container.setDefaultMaxTextMessageBufferSize(1024000);
+        container.setDefaultMaxBinaryMessageBufferSize(1024000);
+        StandardWebSocketClient webSocketClient = new StandardWebSocketClient(container);
         webSocketClient.doHandshake(webSocketHandler, null, aria2Properties.getAddress())
                 .addCallback(new ListenableFutureCallback<>() {
                     @Override

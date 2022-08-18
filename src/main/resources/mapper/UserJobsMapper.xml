@@ -208,6 +208,15 @@
         <include refid="Base_Column_List"/>
         from `UserJobs`
     </select>
+
+    <select id="getMyChatJobs" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from `UserJobs`
+        where `userid` = #{userId,jdbcType=BIGINT},
+        and `chatid` = #{chatId,jdbcType=BIGINT}
+    </select>
+
     <update id="updateNextTruck">
         update `UserJobs`
         set `nextTruck` = #{nextTruck, jdbcType=BIGINT}

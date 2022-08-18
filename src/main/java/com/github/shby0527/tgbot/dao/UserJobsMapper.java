@@ -50,4 +50,6 @@ public interface UserJobsMapper {
     List<Userjobs> getAllJobs();
 
     int updateNextTruck(@Param("id") Long id, @Param("nextTruck") Long nextTruck);
+
+    List<Userjobs> getMyChatJobs(@Param("userId") Long userId, @Param("chatId") Long chatId);
 }

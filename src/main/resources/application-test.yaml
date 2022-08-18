@@ -151,6 +151,10 @@ bot:
             option: false
           - name: iso8601 Duration 表达式/Corn表达式
             option: false
+      listtrigger:
+        service: listTriggerCommandProcessor
+        description: 列出当前聊天中我的定时任务
+        arguments: []
   aria2:
     address: ws://192.168.10.187:6800/jsonrpc
     token: NEPX68EQF6BC

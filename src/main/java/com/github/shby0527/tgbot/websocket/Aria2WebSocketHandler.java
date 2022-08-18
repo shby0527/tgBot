@@ -13,6 +13,8 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 
+import javax.websocket.ContainerProvider;
+import javax.websocket.WebSocketContainer;
 import java.io.IOException;
 
 @Slf4j
@@ -56,7 +58,10 @@ public class Aria2WebSocketHandler implements WebSocketHandler {
             Aria2WebSocketHandler.session = null;
         }
         // reconnect
-        WebSocketClient client = new StandardWebSocketClient();
+        WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+        container.setDefaultMaxTextMessageBufferSize(1024000);
+        container.setDefaultMaxBinaryMessageBufferSize(1024000);
+        StandardWebSocketClient client = new StandardWebSocketClient(container);
         client.doHandshake(this, null, aria2Properties.getAddress())
                 .addCallback(new ListenableFutureCallback<WebSocketSession>() {
                     @Override
