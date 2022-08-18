@@ -42,6 +42,7 @@
         `id`, `userid`, `name`, `chatid`, `scheduler`, `arguments`, `corn`, `nextTruck`,
         `ctime`, `mtime`
     </sql>
+
     <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
         <!--
           WARNING - @mbg.generated
@@ -222,4 +223,8 @@
         set `nextTruck` = #{nextTruck, jdbcType=BIGINT}
         where `id` = #{id, jdbcType=BIGINT}
     </update>
+
+    <delete id="deleteById">
+        delete from `UserJobs` where `id` = #{id, jdbcType=BIGINT}
+    </delete>
 </mapper>

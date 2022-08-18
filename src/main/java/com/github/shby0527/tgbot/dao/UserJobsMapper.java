@@ -46,6 +46,8 @@ public interface UserJobsMapper {
      */
     int updateByPrimaryKey(Userjobs record);
 
+    int deleteById(@Param("id") Long id);
+
 
     List<Userjobs> getAllJobs();
 

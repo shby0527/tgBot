@@ -75,7 +75,7 @@ public class ListTriggerCommandProcessor implements RegisterBotCommandService {
                             Collectors.mapping(v -> {
                                 Map<String, String> selection = new HashMap<>();
                                 selection.put("text", v.getName());
-                                selection.put("callback_data", "triggerCallbackProcess=list," + v.getId());
+                                selection.put("callback_data", "triggerCallbackProcess=info," + v.getId());
                                 return selection;
                             }, Collectors.toList())))
                     .values();
