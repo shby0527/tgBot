@@ -213,7 +213,7 @@
         select
         <include refid="Base_Column_List"/>
         from `UserJobs`
-        where `userid` = #{userId,jdbcType=BIGINT},
+        where `userid` = #{userId,jdbcType=BIGINT}
         and `chatid` = #{chatId,jdbcType=BIGINT}
     </select>
 
