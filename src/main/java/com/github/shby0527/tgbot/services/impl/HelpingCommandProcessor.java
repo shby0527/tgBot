@@ -79,7 +79,7 @@ public class HelpingCommandProcessor implements RegisterBotCommandService {
                         return String.format(format, messageSource.getMessage(arg.getName(), null, arg.getName(), locale));
                     }).collect(Collectors.joining(" ")));
             sb.append(" ")
-                    .append(v.getDescription());
+                    .append(messageSource.getMessage(v.getDescription(), null, v.getDescription(), locale));
             joiner.add(sb.toString());
         });
         post.put("text", joiner + atUser);
