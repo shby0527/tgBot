@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.TagToImgMapper;
 import com.github.shby0527.tgbot.dao.TgUploadedMapper;
+import com.github.shby0527.tgbot.dao.UserInfoMapper;
 import com.github.shby0527.tgbot.entities.ImgLinks;
 import com.github.shby0527.tgbot.entities.InfoTags;
 import com.github.shby0527.tgbot.entities.TgUploaded;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
@@ -31,7 +33,6 @@ import java.text.MessageFormat;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -47,6 +48,9 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     private TagToImgMapper tagToImgMapper;
 
     @Autowired
+    private UserInfoMapper userInfoMapper;
+
+    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
@@ -57,6 +61,9 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
 
     @Autowired
     private Aria2Properties aria2Properties;
+
+    @Autowired
+    private MessageSource messageSource;
 
     private final static Pattern PATTERN = Pattern.compile("^([a-zA-Z]+)-\\d+$");
 
@@ -149,7 +156,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         if (scc == null) {
             Long chatId = JSONUtils.readJsonObject(rep, "result.chat.id", Long.class);
             Long messageId = JSONUtils.readJsonObject(rep, "result.message_id", Long.class);
-            editMessage("ごめんなさい、なくしちゃだ　QVQ", chatId, messageId);
+            editMessage("download fail", chatId, messageId);
         }
     }
 
@@ -191,7 +198,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     }
 
 
-    private JsonNode editMessage(String text, Long chatId, Long messageId) {
+    private void editMessage(String text, Long chatId, Long messageId) {
         Map<String, Object> post = new HashMap<>();
         post.put("chat_id", chatId);
         post.put("message_id", messageId);
@@ -203,12 +210,10 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
             try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
                 JsonNode back = response.getJson();
                 log.debug("return back {}", back);
-                return back;
             }
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
-        return null;
     }
 
 
@@ -218,7 +223,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         Long tagId = (Long) status.get("tagId");
         Long chatId = JSONUtils.readJsonObject(replay, "result.chat.id", Long.class);
         Long messageId = JSONUtils.readJsonObject(replay, "result.message_id", Long.class);
-        editMessage("ご主人さまの捜し物はまもなくお届けます", chatId, messageId);
+        editMessage("download completed, sending", chatId, messageId);
         Map<String, Object> post = new HashMap<>();
         List<InfoTags> tags = tagToImgMapper.getImagesTags(image.getId());
         post.put("chat_id", chatId);
@@ -231,7 +236,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         post.put("reply_markup", reply_markup);
         List<List<Map<String, String>>> keyboard = new ArrayList<>();
         Map<String, String> np = new HashMap<>();
-        np.put("text", "次をちょうだい");
+        np.put("text", "next");
         np.put("callback_data", "tagsCbForNextImage=" + image.getId() + "," + tagId);
         keyboard.add(Collections.singletonList(np));
         reply_markup.put("inline_keyboard", keyboard);
@@ -247,7 +252,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         JsonNode rep = (JsonNode) status.get("replay");
         Long rChatId = JSONUtils.readJsonObject(rep, "result.chat.id", Long.class);
         Long rMessageId = JSONUtils.readJsonObject(rep, "result.message_id", Long.class);
-        editMessage("ご主人さまの捜し物はまもなくお届けます", rChatId, rMessageId);
+        editMessage("download completed, sending", rChatId, rMessageId);
         Map<String, Object> post = new HashMap<>();
         List<InfoTags> tags = tagToImgMapper.getImagesTags(links.getId());
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);

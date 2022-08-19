@@ -13,6 +13,7 @@ import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
@@ -20,10 +21,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service("addTriggerCommandProcessor")
@@ -40,6 +38,9 @@ public class AddTriggerCommandProcessor implements RegisterBotCommandService {
 
     @Autowired
     private TelegramBotProperties botProperties;
+
+    @Autowired
+    private MessageSource messageSource;
 
     private static final String SERVICE_NAME = "autoSendSchedulerService";
 
@@ -60,11 +61,13 @@ public class AddTriggerCommandProcessor implements RegisterBotCommandService {
             sendText("arguments not enough, look /help", node);
             return;
         }
+        Locale locale = Locale.forLanguageTag(userinfo.getLanguageCode());
         ZonedDateTime now = ZonedDateTime.now();
         String name = arguments[0];
         String search = arguments[1];
         String cron;
         long nextTruck = 0;
+        String errorMsg = messageSource.getMessage("replay.trigger.error", null, "replay.trigger.error", locale);
         if (StringUtils.startsWithIgnoreCase(arguments[2], "P")) {
             // P 开头认为是 Duration 表达式
             try {
@@ -73,26 +76,26 @@ public class AddTriggerCommandProcessor implements RegisterBotCommandService {
                 long nowT = Date.from(now.toInstant()).getTime();
                 nextTruck = nowT + duration.getSeconds() * 1000 - 10;
             } catch (Throwable t) {
-                sendText("arguments error, look /help", node);
+                sendText(errorMsg, node);
                 return;
             }
         } else {
             // 不是Duration 就是 Cron 表达式， cron 表达式，需要后续参数
             if (arguments.length < 8) {
-                sendText("arguments error, look /help", node);
+                sendText(errorMsg, node);
                 return;
             }
             cron = String.format("%s %s %s %s %s %s",
                     arguments[2], arguments[3], arguments[4],
                     arguments[5], arguments[6], arguments[7]);
             if (!CronExpression.isValidExpression(cron)) {
-                sendText("arguments error, look /help", node);
+                sendText(errorMsg, node);
                 return;
             }
             CronExpression expression = CronExpression.parse(cron);
             ZonedDateTime next = expression.next(now);
             if (next == null) {
-                sendText("arguments error, look /help", node);
+                sendText(errorMsg, node);
                 return;
             }
             nextTruck = Date.from(next.toInstant()).getTime() - 10;
@@ -106,7 +109,7 @@ public class AddTriggerCommandProcessor implements RegisterBotCommandService {
         userjobs.setNexttruck(nextTruck);
         userjobs.setName(name);
         userJobsMapper.insertSelective(userjobs);
-        sendText("ご計画セット完了", node);
+        sendText(messageSource.getMessage("replay.trigger.finish", null, "replay.trigger.finish", locale), node);
     }
 
 

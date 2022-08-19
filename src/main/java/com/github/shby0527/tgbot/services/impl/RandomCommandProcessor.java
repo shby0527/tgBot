@@ -2,13 +2,11 @@ package com.github.shby0527.tgbot.services.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
-import com.github.shby0527.tgbot.dao.ImgLinksMapper;
-import com.github.shby0527.tgbot.dao.InfoTagsMapper;
-import com.github.shby0527.tgbot.dao.TagToImgMapper;
-import com.github.shby0527.tgbot.dao.TgUploadedMapper;
+import com.github.shby0527.tgbot.dao.*;
 import com.github.shby0527.tgbot.entities.ImgLinks;
 import com.github.shby0527.tgbot.entities.InfoTags;
 import com.github.shby0527.tgbot.entities.TgUploaded;
+import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.RegisterBotCommandService;
@@ -22,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.bind.BindResult;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.context.MessageSource;
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -61,7 +60,13 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
     private TgUploadedMapper tgUploadedMapper;
 
     @Autowired
+    private UserInfoMapper userInfoMapper;
+
+    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private MessageSource messageSource;
 
     private final Collection<Long> notInTags;
 
@@ -89,8 +94,10 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
                 }
             }
         }
+        JsonNode from = JSONUtils.readJsonObject(node, "message.from", JsonNode.class);
+        Locale locale = getUserLocal(from);
         if (imgLinks == null) {
-            sendText("ご主人さまの探しものがなくなっちゃった、うぅぅぅぅQVQ", node);
+            sendText(messageSource.getMessage("replay.random.not-found", null, "replay.random.not-found", locale), node);
             return;
         }
         TgUploaded uploaded = tgUploadedMapper.selectByPrimaryKey(imgLinks.getId());
@@ -102,7 +109,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         if (Optional.ofNullable(redisTemplate.hasKey(key)).orElse(false)) {
             return;
         }
-        JsonNode rep = sendText("ご主人さまの探しものが見つかったぞ、いまダウロード中", node);
+        JsonNode rep = sendText(messageSource.getMessage("replay.random.downloading", null, "replay.random.downloading", locale), node);
         // 这里发送websocket的消息，下载图片
         Map<String, Object> saveStatus = new HashMap<>(2);
         saveStatus.put("service", "chatRandomCallbackService");
@@ -131,7 +138,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
             session.sendMessage(textMessage);
         } catch (IOException e) {
             log.debug("获取 session 失败", e);
-            sendText("ご主人さまの探しものがなくなっちゃった、うぅぅぅぅQVQ", node);
+            sendText(messageSource.getMessage("replay.random.fail", null, "replay.random.fail", locale), node);
         }
     }
 
@@ -185,5 +192,18 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
             log.error(e.getMessage(), e);
         }
         return null;
+    }
+
+
+    private Locale getUserLocal(JsonNode from) {
+        Long userId = from.get("id").longValue();
+        Userinfo userinfo = userInfoMapper.selectByPrimaryKey(userId);
+        String language = "ja";
+        if (userinfo == null) {
+            language = Optional.ofNullable(from.get("language_code")).map(JsonNode::textValue).orElse("ja");
+        } else {
+            language = userinfo.getLanguageCode();
+        }
+        return Locale.forLanguageTag(language);
     }
 }

@@ -10,12 +10,14 @@ import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -32,6 +34,9 @@ public class ChatInfoCommandProcessor implements RegisterBotCommandService {
     @Autowired
     private TelegramBotProperties botProperties;
 
+    @Autowired
+    private MessageSource messageSource;
+
     @Override
     public void process(String[] arguments, JsonNode node) {
         JsonNode from = JSONUtils.readJsonObject(node, "message.from", JsonNode.class);
@@ -41,11 +46,16 @@ public class ChatInfoCommandProcessor implements RegisterBotCommandService {
         if (userinfo == null) return;
         // >= 1 以上的权限可以使用，一般人是 0
         if (userinfo.getPermission() < 1) return;
-        String text = MessageFormat.format("{0} {1} ご主人さま、ここは　{2}, {3} です、ここのIDは: {4} です",
-                userinfo.getFirstname(), userinfo.getLastname(),
-                Optional.ofNullable(chat.get("title")).map(JsonNode::textValue).orElse("private chat"),
-                chat.get("type").textValue(),
-                Long.toString(chat.get("id").longValue()));
+        Locale locale = Locale.forLanguageTag(userinfo.getLanguageCode());
+        String text = messageSource.getMessage("replay.chat-info.replay",
+                new Object[]{
+                        userinfo.getFirstname(), userinfo.getLastname(),
+                        Optional.ofNullable(chat.get("title")).map(JsonNode::textValue).orElse("private chat"),
+                        chat.get("type").textValue(),
+                        Long.toString(chat.get("id").longValue())
+                },
+                "replay.chat-info.replay",
+                locale);
         sendText(text, node);
     }
 

@@ -8,6 +8,8 @@ server:
         enabled: false
 
 spring:
+  messages:
+    basename: i18n/messages
   mvc:
     throw-exception-if-no-handler-found: true
     pathmatch:
@@ -18,9 +20,9 @@ spring:
   # 连接池
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
-    url: jdbc:mysql://123.123.123.123:3306/database?useUnicode=true&characterEncoding=utf-8&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
-    username: username
-    password: password
+    url: jdbc:mysql://192.168.10.187:3306/mini_gp?useUnicode=true&characterEncoding=utf-8&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
+    username: mini_gp
+    password: miniGp_0711
     druid:
       enable: true
       max-active: 100
@@ -96,64 +98,55 @@ bot:
     token: "private"
     default-process: sliceEntityProcessService
     url: http://127.0.0.1:17900/bot${bot.api.token}/
-    auto-chat:
-      - chat-id: -1001175181342
-        tag: g41
     service-to-process:
       bot_command: botCommandProcessService
   command:
     commands:
       random:
         service: randomCommandProcessor
-        description: 随机发送一张图片
+        description: command.random.description
         arguments:
-          - name: regexp
-            option: true
-      randompic:
-        service: randomCommandProcessor
-        description: 随机发送一张图片, random 的别名
-        arguments:
-          - name: regexp
+          - name: command.random.argument.tag
             option: true
       search:
         service: searchCommandProcessor
-        description: 搜索相关的tag
+        description: command.search.description
         arguments:
-          - name: regexp
+          - name: command.search.argument.tag
             option: false
       tags:
         service: popularTagsCommandProcessor
-        description: 返回最受欢迎的10个标签
+        description: command.tags.description
         arguments: []
       start:
         service: helpingCommandProcessor
-        description: 返回本帮助信息，help 的别名
+        description: command.start.description
         arguments: []
       help:
         service: helpingCommandProcessor
-        description: 返回本帮助信息
+        description: command.help.description
         arguments: []
       myinfo:
         service: userInfoCommandProcessor
-        description: 我的信息
+        description: command.my-info.description
         arguments: []
       chatinfo:
         service: chatInfoCommandProcessor
-        description: 当前聊天窗口的信息
+        description: command.chat-info.description
         arguments: []
       addtrigger:
         service: addTriggerCommandProcessor
-        description: 设置一个定时任务
+        description: command.add-trigger.description
         arguments:
-          - name: 名称
+          - name: command.add-trigger.argument.name
             option: false
-          - name: 搜索条件
+          - name: command.add-trigger.argument.keyword
             option: false
-          - name: iso8601 Duration 表达式/Corn表达式
+          - name: command.add-trigger.argument.express
             option: false
       listtrigger:
         service: listTriggerCommandProcessor
-        description: 列出当前聊天中我的定时任务
+        description: command.list-trigger.description
         arguments: []
   aria2:
     address: ws://192.168.10.187:6800/jsonrpc

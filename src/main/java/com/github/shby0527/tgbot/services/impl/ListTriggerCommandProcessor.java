@@ -13,6 +13,7 @@ import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +38,9 @@ public class ListTriggerCommandProcessor implements RegisterBotCommandService {
     @Autowired
     private TelegramBotProperties botProperties;
 
+    @Autowired
+    private MessageSource messageSource;
+
     @Override
     public void process(String[] arguments, JsonNode node) {
         JsonNode chat = JSONUtils.readJsonObject(node, "message.chat", JsonNode.class);
@@ -51,11 +55,18 @@ public class ListTriggerCommandProcessor implements RegisterBotCommandService {
         }
         Long chatId = chat.get("id").longValue();
         List<Userjobs> myChatJobs = userJobsMapper.getMyChatJobs(userId, chatId);
+        Locale locale = Locale.forLanguageTag(userinfo.getLanguageCode());
         if (myChatJobs.isEmpty()) {
-            sendText("ご主人さまは、この場所で何も計画が見えません", node, null);
+            sendText(
+                    messageSource.getMessage("replay.trigger.list.not-found", null,
+                            "replay.trigger.list.not-found", locale),
+                    node, null);
             return;
         }
-        sendText("ご主人さまのご計画はこちらです", node, myChatJobs);
+        sendText(
+                messageSource.getMessage("replay.trigger.list.found", null,
+                        "replay.trigger.list.found", locale)
+                , node, myChatJobs);
     }
 
     private void sendText(String text, JsonNode origin, List<Userjobs> chatJobs) {
