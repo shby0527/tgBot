@@ -150,6 +150,7 @@ bot:
         arguments: []
   aria2:
     address: ws://192.168.10.187:6800/jsonrpc
+    http: http://192.168.10.187:6800/jsonrpc
     token: NEPX68EQF6BC
   extarn:
     - 67398

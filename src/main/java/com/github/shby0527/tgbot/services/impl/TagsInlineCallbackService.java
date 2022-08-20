@@ -109,23 +109,29 @@ public class TagsInlineCallbackService implements InlineCallbackService {
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         ops.set(key, saveStatus);
         // 通过websocket 开始下载
+
+        Map<String, Object> addUrl = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
+        int latestIndex = links.getLink().lastIndexOf('.');
+        String ext = links.getLink().substring(latestIndex);
+        params.put("out", links.getId().toString() + ext);
+        addUrl.put("jsonrpc", "2.0");
+        addUrl.put("id", "addrpc-" + links.getId());
+        addUrl.put("method", "aria2.addUri");
+        addUrl.put("params", new Object[]{
+                "token:" + aria2Properties.getToken(),
+                new String[]{links.getLink()},
+                params
+        });
         try {
-            WebSocketSession session = Aria2WebSocketHandler.getSession();
-            Map<String, Object> addUrl = new HashMap<>();
-            Map<String, Object> params = new HashMap<>();
-            int latestIndex = links.getLink().lastIndexOf('.');
-            String ext = links.getLink().substring(latestIndex);
-            params.put("out", links.getId().toString() + ext);
-            addUrl.put("jsonrpc", "2.0");
-            addUrl.put("id", "addrpc-" + links.getId());
-            addUrl.put("method", "aria2.addUri");
-            addUrl.put("params", new Object[]{
-                    "token:" + aria2Properties.getToken(),
-                    new String[]{links.getLink()},
-                    params
+            String post = JSONUtils.OBJECT_MAPPER.writeValueAsString(addUrl);
+            httpService.postForString(aria2Properties.getHttp(), null, null, post, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    log.debug("content:{}", httpResponse.getContent());
+                } catch (IOException e) {
+                    log.debug("", e);
+                }
             });
-            TextMessage textMessage = new TextMessage(JSONUtils.OBJECT_MAPPER.writeValueAsBytes(addUrl));
-            session.sendMessage(textMessage);
         } catch (IOException e) {
             log.debug("获取 session 失败", e);
             editMessage("ご主人さまの探しものがなくなっちゃった、うぅぅぅぅQVQ", origin);

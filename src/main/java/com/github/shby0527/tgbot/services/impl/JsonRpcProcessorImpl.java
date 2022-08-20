@@ -67,17 +67,12 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
 
     private final static Pattern PATTERN = Pattern.compile("^([a-zA-Z]+)-\\d+$");
 
-    private final Map<String, BiConsumer<WebSocketSession, JsonNode>> CALLBACK;
-
     private final Map<String, BiConsumer<WebSocketSession, JsonNode>> METHOD_CALL;
 
 
     private final Map<String, BiFunction<String, Map<String, Object>, JsonNode>> SEND_DOCUMENT_PARAMETERS;
 
     public JsonRpcProcessorImpl() {
-        CALLBACK = new HashMap<>();
-        CALLBACK.put("getFile", this::getFileCallback);
-        CALLBACK.put("getFileFail", this::getFileFailCallback);
         METHOD_CALL = new HashMap<>();
         METHOD_CALL.put("aria2.onDownloadError", this::downloadError);
         METHOD_CALL.put("aria2.onDownloadComplete", this::downloadComplete);
@@ -94,14 +89,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         try {
             JsonNode jsonBack = JSONUtils.OBJECT_MAPPER.readTree(json);
             String id = Optional.ofNullable(jsonBack.get("id")).map(JsonNode::textValue).orElse("");
-            if (StringUtils.isNotEmpty(id)) {
-                Matcher matcher = PATTERN.matcher(id);
-                if (matcher.find()) {
-                    String back = matcher.group(1);
-                    BiConsumer<WebSocketSession, JsonNode> consumer = CALLBACK.get(back);
-                    if (consumer != null) consumer.accept(session, jsonBack);
-                }
-            } else {
+            if (StringUtils.isEmpty(id)) {
                 String method = jsonBack.get("method").textValue();
                 BiConsumer<WebSocketSession, JsonNode> consumer = METHOD_CALL.get(method);
                 if (consumer != null) consumer.accept(session, jsonBack);
@@ -112,7 +100,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     }
 
 
-    private void getFileCallback(WebSocketSession session, JsonNode json) {
+    private void getFileCallback(JsonNode json) {
         log.debug("{}", json);
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         String path = JSONUtils.readJsonObject(json, "result[0].path", String.class);
@@ -139,7 +127,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         }
     }
 
-    private void getFileFailCallback(WebSocketSession session, JsonNode json) {
+    private void getFileFailCallback(JsonNode json) {
         log.debug("{}", json);
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         String path = JSONUtils.readJsonObject(json, "result[0].path", String.class);
@@ -172,8 +160,14 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
                 gid
         });
         try {
-            TextMessage textMessage = new TextMessage(JSONUtils.OBJECT_MAPPER.writeValueAsBytes(addUrl));
-            session.sendMessage(textMessage);
+            String post = JSONUtils.OBJECT_MAPPER.writeValueAsString(addUrl);
+            httpService.postForString(aria2Properties.getHttp(), null, null, post, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    this.getFileCallback(httpResponse.getJson());
+                } catch (IOException e) {
+                    log.debug("", e);
+                }
+            });
         } catch (IOException e) {
             log.error("出现错误", e);
         }
@@ -190,8 +184,14 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
                 gid
         });
         try {
-            TextMessage textMessage = new TextMessage(JSONUtils.OBJECT_MAPPER.writeValueAsBytes(addUrl));
-            session.sendMessage(textMessage);
+            String post = JSONUtils.OBJECT_MAPPER.writeValueAsString(addUrl);
+            httpService.postForString(aria2Properties.getHttp(), null, null, post, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    this.getFileFailCallback(httpResponse.getJson());
+                } catch (IOException e) {
+                    log.debug("", e);
+                }
+            });
         } catch (IOException e) {
             log.error("出现错误", e);
         }

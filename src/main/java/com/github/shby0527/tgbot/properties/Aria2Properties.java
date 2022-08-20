@@ -15,5 +15,7 @@ public class Aria2Properties {
 
     private URI address;
 
+    private String http;
+
     private String token;
 }
