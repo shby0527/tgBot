@@ -3,6 +3,7 @@ package com.github.shby0527.tgbot.services.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.dao.UserInfoMapper;
 import com.github.shby0527.tgbot.dao.UserJobsMapper;
+import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.entities.Userjobs;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.InlineCallbackService;
@@ -12,6 +13,7 @@ import com.xw.web.utils.JSONUtils;
 import com.xw.web.utils.StringReplaceUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +43,9 @@ public class TriggerCallbackProcess implements InlineCallbackService {
     @Autowired
     private TelegramBotProperties botProperties;
 
+    @Autowired
+    private MessageSource messageSource;
+
     private final Map<String, BiConsumer<JsonNode, Userjobs>> PROCESSOR_MAP;
 
     public TriggerCallbackProcess() {
@@ -68,20 +73,18 @@ public class TriggerCallbackProcess implements InlineCallbackService {
         Long chatId = JSONUtils.readJsonObject(origin, "callback_query.message.chat.id", Long.class);
         ZonedDateTime time = Instant.ofEpochMilli(job.getNexttruck()).atZone(ZoneId.systemDefault());
         String formatTime = time.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-        Map<String, String> info = new HashMap<>();
-        info.put("name", job.getName());
-        info.put("tag", job.getArguments());
-        info.put("cron", job.getCorn());
-        info.put("next", formatTime);
-        String template = "ご主人さまのご計画は：\n名前：[name]\nキーワード：[tag]\n計画時間：[cron]\n次の時間：[next]";
-        String finalText = StringReplaceUtils.replaceWithMap(template, info);
+        Userinfo userinfo = userInfoMapper.selectByPrimaryKey(job.getUserid());
+        Locale locale = Locale.forLanguageTag(userinfo.getLanguageCode());
+        String finalText = messageSource.getMessage("replay.trigger.info", new Object[]{
+                job.getName(), job.getArguments(), job.getCorn(), formatTime
+        }, "replay.trigger.info", locale);
         log.debug("finalText is {}", finalText);
         List<List<Map<String, String>>> list = List.of(
                 Collections.singletonList(
-                        Map.of("text", "削除する",
+                        Map.of("text", messageSource.getMessage("replay.trigger.delete", null, "replay.trigger.delete", locale),
                                 "callback_data", "triggerCallbackProcess=delete," + job.getId())),
                 Collections.singletonList(
-                        Map.of("text", "戻る",
+                        Map.of("text", messageSource.getMessage("replay.trigger.back", null, "replay.trigger.back", locale),
                                 "callback_data", "triggerCallbackProcess=list," + job.getId()))
         );
         editMessage(finalText, chatId, messageId, list);
@@ -90,8 +93,10 @@ public class TriggerCallbackProcess implements InlineCallbackService {
     private void delete(JsonNode origin, Userjobs job) {
         Long messageId = JSONUtils.readJsonObject(origin, "callback_query.message.message_id", Long.class);
         Long chatId = JSONUtils.readJsonObject(origin, "callback_query.message.chat.id", Long.class);
+        Userinfo userinfo = userInfoMapper.selectByPrimaryKey(job.getUserid());
+        Locale locale = Locale.forLanguageTag(userinfo.getLanguageCode());
         userJobsMapper.deleteById(job.getId());
-        editMessage("削除完了しました", chatId, messageId, null);
+        editMessage(messageSource.getMessage("replay.trigger.delete-finished", null, "replay.trigger.delete-finished", locale), chatId, messageId, null);
     }
 
     private void list(JsonNode origin, Userjobs job) {
@@ -109,7 +114,9 @@ public class TriggerCallbackProcess implements InlineCallbackService {
                             return selection;
                         }, Collectors.toList())))
                 .values();
-        editMessage("ご主人さまのご計画はこちらです", chatId, messageId, root);
+        Userinfo userinfo = userInfoMapper.selectByPrimaryKey(job.getUserid());
+        Locale locale = Locale.forLanguageTag(userinfo.getLanguageCode());
+        editMessage(messageSource.getMessage("replay.trigger.list", null, "replay.trigger.list", locale), chatId, messageId, root);
     }
 
     private void slice(JsonNode origin, Userjobs job) {

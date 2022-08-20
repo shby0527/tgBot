@@ -3,7 +3,9 @@ package com.github.shby0527.tgbot.services.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.InfoTagsMapper;
+import com.github.shby0527.tgbot.dao.UserInfoMapper;
 import com.github.shby0527.tgbot.entities.InfoTags;
+import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.InlineCallbackService;
 import com.xw.task.services.HttpResponse;
@@ -11,6 +13,7 @@ import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
@@ -33,7 +36,13 @@ public class TagsCbToNextPageTagsService implements InlineCallbackService {
     private InfoTagsMapper infoTagsMapper;
 
     @Autowired
+    private UserInfoMapper userInfoMapper;
+
+    @Autowired
     private TelegramBotProperties botProperties;
+
+    @Autowired
+    private MessageSource messageSource;
 
     @Autowired
     private RedisTemplate<String, Map<String, Object>> redisTemplate;
@@ -64,6 +73,8 @@ public class TagsCbToNextPageTagsService implements InlineCallbackService {
         List<InfoTags> tags = infoTagsMapper.selectByTags(condition, id, 10);
         Long messageId = JSONUtils.readJsonObject(origin, "callback_query.message.message_id", Long.class);
         Long chatId = JSONUtils.readJsonObject(origin, "callback_query.message.chat.id", Long.class);
+        JsonNode from = JSONUtils.readJsonObject(origin, "callback_query.message.from", JsonNode.class);
+        Locale locale = getUserLocal(from);
         Map<String, Object> post = new HashMap<>();
         post.put("chat_id", chatId);
         post.put("message_id", messageId);
@@ -89,13 +100,13 @@ public class TagsCbToNextPageTagsService implements InlineCallbackService {
                 arguments[1], current);
         if (current > 1) {
             Map<String, String> nextSelection = new HashMap<>();
-            nextSelection.put("text", "前へ");
+            nextSelection.put("text", messageSource.getMessage("replay.search-tags.prev", null, "replay.search-tags.prev", locale));
             nextSelection.put("callback_data", "tagsCbToNextPageTags=prev," + arguments[1]);
             paginationSelection.add(nextSelection);
         }
         if (tags.size() >= 10) {
             Map<String, String> nextSelection = new HashMap<>();
-            nextSelection.put("text", "次へ");
+            nextSelection.put("text", messageSource.getMessage("replay.search-tags.next", null, "replay.search-tags.next", locale));
             nextSelection.put("callback_data", "tagsCbToNextPageTags=next," + arguments[1]);
             paginationSelection.add(nextSelection);
         }
@@ -124,5 +135,17 @@ public class TagsCbToNextPageTagsService implements InlineCallbackService {
         pagination.put("current", current);
         pagination.put("prev", prevId);
         ops.set(key, pagination, 10, TimeUnit.MINUTES);
+    }
+
+    private Locale getUserLocal(JsonNode from) {
+        Long userId = from.get("id").longValue();
+        Userinfo userinfo = userInfoMapper.selectByPrimaryKey(userId);
+        String language = "ja";
+        if (userinfo == null) {
+            language = Optional.ofNullable(from.get("language_code")).map(JsonNode::textValue).orElse("ja");
+        } else {
+            language = userinfo.getLanguageCode();
+        }
+        return Locale.forLanguageTag(language);
     }
 }

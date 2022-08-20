@@ -10,11 +10,13 @@ import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,6 +32,9 @@ public class UserInfoCommandProcessor implements RegisterBotCommandService {
 
     @Autowired
     private TelegramBotProperties botProperties;
+
+    @Autowired
+    private MessageSource messageSource;
 
     @Override
     public void process(String[] arguments, JsonNode node) {
@@ -48,9 +53,10 @@ public class UserInfoCommandProcessor implements RegisterBotCommandService {
             userinfo.setPermission(0);
             userInfoMapper.insertSelective(userinfo);
         }
-        Long chatId = JSONUtils.readJsonObject(node, "message.chat.id", Long.class);
-        String send = String.format("%s %s ご主人さま、君と会話するのID: %s , 君のID: %s",
-                userinfo.getFirstname(), userinfo.getLastname(), chatId.toString(), id.toString());
+        Locale locale = Locale.forLanguageTag(userinfo.getLanguageCode());
+        String send = messageSource.getMessage("replay.my-info.replay", new Object[]{
+                userinfo.getFirstname(), userinfo.getLastname(), id.toString(), userinfo.getLanguageCode()
+        }, "replay.my-info.replay", locale);
         sendText(send, node);
     }
 

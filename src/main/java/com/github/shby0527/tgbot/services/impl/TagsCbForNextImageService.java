@@ -5,25 +5,21 @@ import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.ImgLinksMapper;
 import com.github.shby0527.tgbot.dao.TagToImgMapper;
 import com.github.shby0527.tgbot.dao.TgUploadedMapper;
-import com.github.shby0527.tgbot.entities.ImgLinks;
-import com.github.shby0527.tgbot.entities.InfoTags;
-import com.github.shby0527.tgbot.entities.TagFoImgKey;
-import com.github.shby0527.tgbot.entities.TgUploaded;
+import com.github.shby0527.tgbot.dao.UserInfoMapper;
+import com.github.shby0527.tgbot.entities.*;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.InlineCallbackService;
-import com.github.shby0527.tgbot.websocket.Aria2WebSocketHandler;
 import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -53,15 +49,23 @@ public class TagsCbForNextImageService implements InlineCallbackService {
     private TgUploadedMapper tgUploadedMapper;
 
     @Autowired
+    private UserInfoMapper userInfoMapper;
+
+    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private MessageSource messageSource;
 
     @Override
     public void process(String[] arguments, JsonNode origin) {
         Long nextId = Long.parseLong(arguments[0]);
         Long tagId = Long.parseLong(arguments[1]);
         TagFoImgKey imageKey = tagToImgMapper.getImageKey(tagId, nextId);
+        JsonNode from = JSONUtils.readJsonObject(origin, "callback_query.message.from", JsonNode.class);
+        Locale locale = getUserLocal(from);
         if (imageKey == null) {
-            sendText("もうないよ", origin);
+            sendText(messageSource.getMessage("replay.next-image.no-more-image", null, "replay.next-image.no-more-image", locale), origin);
             Long chatId = JSONUtils.readJsonObject(origin, "callback_query.message.chat.id", Long.class);
             Long messageId = JSONUtils.readJsonObject(origin, "callback_query.message.message_id", Long.class);
             clearMessageKeyboard(chatId, messageId);
@@ -70,15 +74,13 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageKey.getImgid());
         TgUploaded tgUploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());
         if (tgUploaded != null) {
-            sendExistsImage(links, tgUploaded, origin, tagId);
+            sendExistsImage(links, tgUploaded, origin, tagId, locale);
             return;
         }
-        sendDownloadedImage(links, origin, tagId);
-
+        sendDownloadedImage(links, origin, tagId, locale);
     }
 
-
-    private synchronized void sendDownloadedImage(ImgLinks links, JsonNode node, Long tagId) {
+    private synchronized void sendDownloadedImage(ImgLinks links, JsonNode node, Long tagId, Locale locale) {
         JsonNode message = JSONUtils.readJsonObject(node, "callback_query.message", JsonNode.class);
         JsonNode replay = null;
         String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
@@ -86,9 +88,9 @@ public class TagsCbForNextImageService implements InlineCallbackService {
             return;
         }
         if (!message.has("document") && !message.has("video")) {
-            replay = editMessage("ダウロード中、しばらくお待ち下さい", node);
+            replay = editMessage(messageSource.getMessage("replay.next-image.downloading", null, "replay.next-image.downloading", locale), node);
         } else {
-            replay = sendText("ダウロード中、しばらくお待ち下さい", node);
+            replay = sendText(messageSource.getMessage("replay.next-image.downloading", null, "replay.next-image.downloading", locale), node);
             Long chatId = JSONUtils.readJsonObject(node, "callback_query.message.chat.id", Long.class);
             Long messageId = JSONUtils.readJsonObject(node, "callback_query.message.message_id", Long.class);
             clearMessageKeyboard(chatId, messageId);
@@ -126,7 +128,7 @@ public class TagsCbForNextImageService implements InlineCallbackService {
             });
         } catch (IOException e) {
             log.debug("获取 session 失败", e);
-            editMessage("ご主人さまの探しものがなくなっちゃった、うぅぅぅぅQVQ", node);
+            editMessage(messageSource.getMessage("replay.exception", null, "replay.exception", locale), node);
         }
     }
 
@@ -190,8 +192,7 @@ public class TagsCbForNextImageService implements InlineCallbackService {
     }
 
 
-    private void sendExistsImage(ImgLinks links, TgUploaded uploaded, JsonNode origin, Long tagId) {
-
+    private void sendExistsImage(ImgLinks links, TgUploaded uploaded, JsonNode origin, Long tagId, Locale locale) {
         Long chatId = JSONUtils.readJsonObject(origin, "callback_query.message.chat.id", Long.class);
         Long messageId = JSONUtils.readJsonObject(origin, "callback_query.message.message_id", Long.class);
         List<InfoTags> tags = tagToImgMapper.getImagesTags(uploaded.getImgid());
@@ -207,7 +208,7 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         post.put("reply_markup", reply_markup);
         List<List<Map<String, String>>> keyboard = new ArrayList<>();
         Map<String, String> selection = new HashMap<>();
-        selection.put("text", "次をちょうだい");
+        selection.put("text", messageSource.getMessage("replay.next-image.next-image", null, "replay.next-image.next-image", locale));
         selection.put("callback_data", "tagsCbForNextImage=" + links.getId() + "," + tagId);
         keyboard.add(Collections.singletonList(selection));
         reply_markup.put("inline_keyboard", keyboard);
@@ -245,5 +246,17 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+    private Locale getUserLocal(JsonNode from) {
+        Long userId = from.get("id").longValue();
+        Userinfo userinfo = userInfoMapper.selectByPrimaryKey(userId);
+        String language = "ja";
+        if (userinfo == null) {
+            language = Optional.ofNullable(from.get("language_code")).map(JsonNode::textValue).orElse("ja");
+        } else {
+            language = userinfo.getLanguageCode();
+        }
+        return Locale.forLanguageTag(language);
     }
 }

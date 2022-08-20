@@ -2,13 +2,11 @@ package com.github.shby0527.tgbot.services.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
-import com.github.shby0527.tgbot.dao.ImgLinksMapper;
-import com.github.shby0527.tgbot.dao.InfoTagsMapper;
-import com.github.shby0527.tgbot.dao.TagToImgMapper;
-import com.github.shby0527.tgbot.dao.TgUploadedMapper;
+import com.github.shby0527.tgbot.dao.*;
 import com.github.shby0527.tgbot.entities.ImgLinks;
 import com.github.shby0527.tgbot.entities.InfoTags;
 import com.github.shby0527.tgbot.entities.TgUploaded;
+import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.InlineCallbackService;
@@ -22,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.bind.BindResult;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.context.MessageSource;
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -52,6 +51,9 @@ public class TagsInlineCallbackService implements InlineCallbackService {
     private InfoTagsMapper infoTagsMapper;
 
     @Autowired
+    private UserInfoMapper userInfoMapper;
+
+    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
@@ -63,6 +65,9 @@ public class TagsInlineCallbackService implements InlineCallbackService {
     @Autowired
     private Aria2Properties aria2Properties;
 
+    @Autowired
+    private MessageSource messageSource;
+
     private final Collection<Long> notInTags;
 
     public TagsInlineCallbackService(Environment environment) {
@@ -70,6 +75,19 @@ public class TagsInlineCallbackService implements InlineCallbackService {
         Bindable<List<Long>> bindable = Bindable.listOf(Long.class);
         BindResult<List<Long>> bind = binder.bind("bot.extarn", bindable);
         notInTags = bind.orElse(Collections.emptyList());
+    }
+
+
+    private Locale getUserLocal(JsonNode from) {
+        Long userId = from.get("id").longValue();
+        Userinfo userinfo = userInfoMapper.selectByPrimaryKey(userId);
+        String language = "ja";
+        if (userinfo == null) {
+            language = Optional.ofNullable(from.get("language_code")).map(JsonNode::textValue).orElse("ja");
+        } else {
+            language = userinfo.getLanguageCode();
+        }
+        return Locale.forLanguageTag(language);
     }
 
 
@@ -82,6 +100,8 @@ public class TagsInlineCallbackService implements InlineCallbackService {
             log.debug("not the origin user, ignored the operate");
             return;
         }
+        JsonNode from = JSONUtils.readJsonObject(origin, "callback_query.message.from", JsonNode.class);
+        Locale locale = getUserLocal(from);
         Long tagsId = Long.valueOf(arguments[0]);
         List<Long> imageId = tagToImgMapper.tagsIdToImageId(Collections.singleton(tagsId), notInTags);
         Collections.shuffle(imageId);
@@ -96,7 +116,7 @@ public class TagsInlineCallbackService implements InlineCallbackService {
         if (Optional.ofNullable(redisTemplate.hasKey(key)).orElse(false)) {
             return;
         }
-        JsonNode rep = editMessage("今、ダウロード中、しばらくお待ち下さい", origin);
+        JsonNode rep = editMessage(messageSource.getMessage("replay.next-image.downloading", null, "replay.next-image.downloading", locale), origin);
         Map<String, JsonNode> chat = new HashMap<>();
         chat.put("message", rpOrigin);
         JsonNode jsonNode = JSONUtils.OBJECT_MAPPER.valueToTree(chat);
@@ -134,7 +154,7 @@ public class TagsInlineCallbackService implements InlineCallbackService {
             });
         } catch (IOException e) {
             log.debug("获取 session 失败", e);
-            editMessage("ご主人さまの探しものがなくなっちゃった、うぅぅぅぅQVQ", origin);
+            editMessage(messageSource.getMessage("replay.exception", null, "replay.exception", locale), origin);
         }
     }
 

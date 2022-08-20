@@ -3,7 +3,9 @@ package com.github.shby0527.tgbot.services.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.InfoTagsMapper;
+import com.github.shby0527.tgbot.dao.UserInfoMapper;
 import com.github.shby0527.tgbot.entities.InfoTags;
+import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.RegisterBotCommandService;
 import com.xw.task.services.HttpResponse;
@@ -11,6 +13,7 @@ import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
@@ -32,31 +35,42 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
 
     @Autowired
     private InfoTagsMapper infoTagsMapper;
+
+    @Autowired
+    private UserInfoMapper userInfoMapper;
     @Autowired
     private TelegramBotProperties botProperties;
 
     @Autowired
     private RedisTemplate<String, Map<String, Object>> redisTemplate;
 
+    @Autowired
+    private MessageSource messageSource;
+
     @Override
     public void process(String[] arguments, JsonNode node) {
         String type = JSONUtils.readJsonObject(node, "message.chat.type", String.class);
         // 非私聊不处理
         if (!"private".equals(type)) return;
+        JsonNode from = JSONUtils.readJsonObject(node, "message.from", JsonNode.class);
+        Locale locale = getUserLocal(from);
         if (arguments == null || arguments.length == 0) {
-            sendText("何が探すの？教えて", node, null, null);
+            sendText(messageSource.getMessage("replay.search.no-argument", null, "replay.search.no-argument", locale),
+                    node, null, null, locale);
             return;
         }
         List<InfoTags> tags = infoTagsMapper.selectByTags(arguments[0], null, 10);
         if (tags.isEmpty()) {
-            sendText("何も見えない、キツノリはご主人さまの野望が叶えないQvQ", node, null, null);
+            sendText(messageSource.getMessage("replay.search.no-tags-found", null, "replay.search.no-tags-found", locale),
+                    node, null, null, locale);
             return;
         }
-        sendText("どちらはご主人様の野望です？", node, tags, arguments[0]);
+        sendText(messageSource.getMessage("replay.search.tags-selection", null, "replay.search.tags-selection", locale),
+                node, tags, arguments[0], locale);
     }
 
 
-    private void sendText(String text, JsonNode origin, List<InfoTags> tags, String condition) {
+    private void sendText(String text, JsonNode origin, List<InfoTags> tags, String condition, Locale locale) {
         Map<String, Object> post = new HashMap<>();
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
         JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
@@ -80,7 +94,7 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
             List<List<Map<String, String>>> keyboard = new ArrayList<>(root);
             if (tags.size() >= 10) {
                 Map<String, String> nextSelection = new HashMap<>();
-                nextSelection.put("text", "次へ");
+                nextSelection.put("text", messageSource.getMessage("replay.search.next", null, "replay.search.next", locale));
                 nextSelection.put("callback_data", "tagsCbToNextPageTags=next," +
                         pagination(condition,
                                 tags.stream()
@@ -115,5 +129,18 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
         pagination.put("prev", Collections.singletonList(0L));
         ops.set(key, pagination, 10, TimeUnit.MINUTES);
         return uuid;
+    }
+
+
+    private Locale getUserLocal(JsonNode from) {
+        Long userId = from.get("id").longValue();
+        Userinfo userinfo = userInfoMapper.selectByPrimaryKey(userId);
+        String language = "ja";
+        if (userinfo == null) {
+            language = Optional.ofNullable(from.get("language_code")).map(JsonNode::textValue).orElse("ja");
+        } else {
+            language = userinfo.getLanguageCode();
+        }
+        return Locale.forLanguageTag(language);
     }
 }
