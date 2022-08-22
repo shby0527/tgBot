@@ -49,7 +49,7 @@ public class UserInfoCommandProcessor implements RegisterBotCommandService {
             userinfo.setId(id);
             userinfo.setFirstname(Optional.ofNullable(from.get("first_name")).map(JsonNode::textValue).orElse(""));
             userinfo.setLastname(Optional.ofNullable(from.get("last_name")).map(JsonNode::textValue).orElse(""));
-            userinfo.setLanguageCode(Optional.ofNullable(from.get("language_code")).map(JsonNode::textValue).orElse("jp"));
+            userinfo.setLanguageCode(Optional.ofNullable(from.get("language_code")).map(JsonNode::textValue).orElse("ja-jp"));
             userinfo.setPermission(0);
             userInfoMapper.insertSelective(userinfo);
         }
