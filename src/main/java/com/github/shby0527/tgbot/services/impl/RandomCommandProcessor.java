@@ -10,8 +10,6 @@ import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.RegisterBotCommandService;
-import com.github.shby0527.tgbot.websocket.Aria2WebSocketHandler;
-import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -26,8 +24,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -166,10 +163,14 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                String back = response.getContent();
-                log.debug("return back {}", back);
-            }
+            httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    JsonNode back = httpResponse.getJson();
+                    log.debug("return back {}", back);
+                } catch (IOException e) {
+                    log.error(e.getMessage(), e);
+                }
+            });
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
@@ -185,18 +186,29 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         post.put("text", text + "\n @" + Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""));
         post.put("chat_id", chat.get("id").longValue());
         String url = botProperties.getUrl() + "sendMessage";
-        try {
-            String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
-            log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                JsonNode back = response.getJson();
-                log.debug("return back {}", back);
-                return back;
+        Mono<JsonNode> mono = Mono.create(sink -> {
+            try {
+                String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
+                log.debug("post data: {}", json);
+                httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                    try (httpResponse) {
+                        JsonNode back = httpResponse.getJson();
+                        log.debug("return back {}", back);
+                        sink.success(back);
+                        return;
+                    } catch (IOException e) {
+                        log.error(e.getMessage(), e);
+                    }
+                    sink.success();
+                });
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
             }
-        } catch (IOException e) {
-            log.error(e.getMessage(), e);
-        }
-        return null;
+        });
+        return mono
+                .checkpoint()
+                .blockOptional()
+                .orElse(null);
     }
 
 

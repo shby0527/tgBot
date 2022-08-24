@@ -10,7 +10,6 @@ import com.github.shby0527.tgbot.entities.*;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.InlineCallbackService;
-import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +19,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -138,18 +138,30 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         post.put("text", text);
         post.put("chat_id", chat.get("id").longValue());
         String url = botProperties.getUrl() + "sendMessage";
-        try {
-            String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
-            log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                JsonNode back = response.getJson();
-                log.debug("return back {}", back);
-                return back;
+        Mono<JsonNode> mono = Mono.create(sink -> {
+            try {
+                String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
+                log.debug("post data: {}", json);
+                httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                    try (httpResponse) {
+                        JsonNode back = httpResponse.getJson();
+                        log.debug("return back {}", back);
+                        sink.success(back);
+                        return;
+                    } catch (IOException e) {
+                        log.error(e.getMessage(), e);
+                    }
+                    sink.success();
+                });
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
             }
-        } catch (IOException e) {
-            log.error(e.getMessage(), e);
-        }
-        return null;
+        });
+
+        return mono
+                .checkpoint()
+                .blockOptional()
+                .orElse(null);
     }
 
     private void clearMessageKeyboard(Long chatId, Long messageId) {
@@ -160,10 +172,13 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                JsonNode back = response.getJson();
-                log.debug("return back {}", back);
-            }
+            httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    log.debug("content:{}", httpResponse.getContent());
+                } catch (IOException e) {
+                    log.debug("", e);
+                }
+            });
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
@@ -177,18 +192,30 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         post.put("message_id", messageId);
         post.put("text", text);
         String url = botProperties.getUrl() + "editMessageText";
-        try {
-            String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
-            log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                JsonNode back = response.getJson();
-                log.debug("return back {}", back);
-                return back;
+        Mono<JsonNode> mono = Mono.create(sink -> {
+            try {
+                String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
+                log.debug("post data: {}", json);
+                httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                    try (httpResponse) {
+                        JsonNode back = httpResponse.getJson();
+                        log.debug("return back {}", back);
+                        sink.success(back);
+                        return;
+                    } catch (IOException e) {
+                        log.error(e.getMessage(), e);
+                    }
+                    sink.success();
+                });
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
             }
-        } catch (IOException e) {
-            log.error(e.getMessage(), e);
-        }
-        return null;
+        });
+
+        return mono
+                .checkpoint()
+                .blockOptional()
+                .orElse(null);
     }
 
 
@@ -216,10 +243,13 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                String back = response.getContent();
-                log.debug("return back {}", back);
-            }
+            httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    log.debug("content:{}", httpResponse.getContent());
+                } catch (IOException e) {
+                    log.debug("", e);
+                }
+            });
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
@@ -239,10 +269,13 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                JsonNode back = response.getJson();
-                log.debug("return back {}", back);
-            }
+            httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    log.debug("content:{}", httpResponse.getContent());
+                } catch (IOException e) {
+                    log.debug("", e);
+                }
+            });
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }

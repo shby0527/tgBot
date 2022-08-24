@@ -7,10 +7,8 @@ import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.entities.Userjobs;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.InlineCallbackService;
-import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
-import com.xw.web.utils.StringReplaceUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -138,10 +136,13 @@ public class TriggerCallbackProcess implements InlineCallbackService {
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                JsonNode back = response.getJson();
-                log.debug("return back {}", back);
-            }
+            httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    log.debug("content:{}", httpResponse.getContent());
+                } catch (IOException e) {
+                    log.debug("", e);
+                }
+            });
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }

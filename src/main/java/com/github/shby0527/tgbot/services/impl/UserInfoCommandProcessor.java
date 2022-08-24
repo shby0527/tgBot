@@ -5,7 +5,6 @@ import com.github.shby0527.tgbot.dao.UserInfoMapper;
 import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.RegisterBotCommandService;
-import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -73,10 +72,13 @@ public class UserInfoCommandProcessor implements RegisterBotCommandService {
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                JsonNode back = response.getJson();
-                log.debug("return back {}", back);
-            }
+            httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    log.debug("content:{}", httpResponse.getContent());
+                } catch (IOException e) {
+                    log.debug("", e);
+                }
+            });
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }

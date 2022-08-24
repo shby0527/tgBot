@@ -10,8 +10,6 @@ import com.github.shby0527.tgbot.entities.TgUploaded;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.SchedulerService;
-import com.github.shby0527.tgbot.websocket.Aria2WebSocketHandler;
-import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +20,6 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.util.*;
@@ -116,10 +112,14 @@ public class AutoSendSchedulerService implements SchedulerService {
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
-            try (HttpResponse response = httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, null)) {
-                String back = response.getContent();
-                log.debug("return back {}", back);
-            }
+            httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    String back = httpResponse.getContent();
+                    log.debug("return back {}", back);
+                } catch (IOException e) {
+                    log.error(e.getMessage(), e);
+                }
+            });
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
