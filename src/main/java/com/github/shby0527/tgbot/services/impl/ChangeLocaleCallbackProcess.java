@@ -55,7 +55,7 @@ public class ChangeLocaleCallbackProcess implements InlineCallbackService {
 
     @Override
     public void process(String[] arguments, JsonNode origin) {
-        JsonNode from = JSONUtils.readJsonObject(origin, "callback_query.message.from", JsonNode.class);
+        JsonNode from = JSONUtils.readJsonObject(origin, "callback_query.from", JsonNode.class);
         Long userId = from.get("id").longValue();
         Userinfo userinfo = userInfoMapper.selectByPrimaryKey(userId);
         if (userinfo == null) return;
