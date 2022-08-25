@@ -14,10 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service("userInfoCommandProcessor")
@@ -56,11 +53,11 @@ public class UserInfoCommandProcessor implements RegisterBotCommandService {
         String send = messageSource.getMessage("replay.my-info.replay", new Object[]{
                 userinfo.getFirstname(), userinfo.getLastname(), id.toString(), userinfo.getLanguageCode()
         }, "replay.my-info.replay", locale);
-        sendText(send, node);
+        sendText(send, node, locale);
     }
 
 
-    private void sendText(String text, JsonNode origin) {
+    private void sendText(String text, JsonNode origin, Locale locale) {
         Map<String, Object> post = new HashMap<>();
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
         JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
@@ -68,6 +65,14 @@ public class UserInfoCommandProcessor implements RegisterBotCommandService {
         post.put("reply_to_message_id", messageId);
         post.put("text", text + "\n @" + Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""));
         post.put("chat_id", chat.get("id").longValue());
+        Map<String, Object> reply_markup = new HashMap<>(1);
+        post.put("reply_markup", reply_markup);
+        Collection<List<Map<String, String>>> root =
+                Collections.singletonList(Collections.singletonList(Map.of(
+                        "text", messageSource.getMessage("replay.my-info.change-language", null, "replay.my-info.change-language", locale),
+                        "callback_data", "changeLocaleCallbackProcess=list"
+                )));
+        reply_markup.put("inline_keyboard", root);
         String url = botProperties.getUrl() + "sendMessage";
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
@@ -83,4 +88,5 @@ public class UserInfoCommandProcessor implements RegisterBotCommandService {
             log.error(e.getMessage(), e);
         }
     }
+
 }

@@ -10,6 +10,7 @@ server:
 spring:
   messages:
     basename: i18n/messages
+    encoding: UTF-8
   mvc:
     throw-exception-if-no-handler-found: true
     pathmatch:
@@ -154,4 +155,8 @@ bot:
     token: NEPX68EQF6BC
   extarn:
     - 67398
+  languages:
+    en: english
+    zh: 简体中文
+    ja: 日本語
 

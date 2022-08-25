@@ -124,9 +124,14 @@
         where `id` = #{id,jdbcType=BIGINT}
     </update>
 
+
     <!-- ### 以上代码由MBG + CommentPlugin自动生成, 生成时间: 2022-08-16 17:58:22 ### -->
 
 
     <!-- 下面可以写业务代码!!! -->
-
+    <update id="updateUserLanguageCode">
+        update userInfo
+        set language_code = #{code, jdbcType=VARCHAR}
+        where id = #{userId, jdbcType=BIGINT}
+    </update>
 </mapper>

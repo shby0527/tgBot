@@ -1,6 +1,7 @@
 package com.github.shby0527.tgbot.dao;
 
 import com.github.shby0527.tgbot.entities.Userinfo;
+import org.apache.ibatis.annotations.Param;
 
 public interface UserInfoMapper {
     /**
@@ -42,4 +43,7 @@ public interface UserInfoMapper {
      * @mbg.generated Tue Aug 16 17:58:22 CST 2022
      */
     int updateByPrimaryKey(Userinfo record);
+
+
+    int updateUserLanguageCode(@Param("userId") Long userId, @Param("code") String code);
 }
