@@ -72,7 +72,7 @@ public class ChangeLocaleCallbackProcess implements InlineCallbackService {
         AtomicInteger increment = new AtomicInteger(0);
         Collection<List<Map<String, String>>> collection = LANGUAGE_CODES.entrySet()
                 .stream()
-                .collect(Collectors.groupingBy(p -> increment.getAndIncrement() % 4,
+                .collect(Collectors.groupingBy(p -> increment.getAndIncrement() / 4,
                         Collectors.mapping(p -> Map.of(
                                 "text", p.getValue(),
                                 "callback_data", "changeLocaleCallbackProcess=set," + p.getKey()
