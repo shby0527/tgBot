@@ -138,11 +138,16 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         if (map == null) return;
         redisTemplate.delete(key);
         JsonNode rep = (JsonNode) map.get("replay");
+        Locale locale = Optional.ofNullable(map.get("language"))
+                .map(Object::toString)
+                .map(Locale::forLanguageTag)
+                .orElse(Locale.JAPAN);
         Long scc = (Long) map.get("scc");
         if (scc == null) {
             Long chatId = JSONUtils.readJsonObject(rep, "result.chat.id", Long.class);
             Long messageId = JSONUtils.readJsonObject(rep, "result.message_id", Long.class);
-            editMessage("download fail", chatId, messageId);
+            editMessage(messageSource.getMessage("bk.message.download-fail", null, "bk.message.download-fail", locale),
+                    chatId, messageId);
         }
     }
 
@@ -222,10 +227,15 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     private JsonNode selectionNextImage(String path, Map<String, Object> status) {
         ImgLinks image = (ImgLinks) status.get("image");
         JsonNode replay = (JsonNode) status.get("replay");
+        Locale locale = Optional.ofNullable(status.get("language"))
+                .map(Object::toString)
+                .map(Locale::forLanguageTag)
+                .orElse(Locale.JAPAN);
         Long tagId = (Long) status.get("tagId");
         Long chatId = JSONUtils.readJsonObject(replay, "result.chat.id", Long.class);
         Long messageId = JSONUtils.readJsonObject(replay, "result.message_id", Long.class);
-        editMessage("download completed, sending", chatId, messageId);
+        editMessage(messageSource.getMessage("bk.message.download-completed", null, "bk.message.download-completed", locale),
+                chatId, messageId);
         Map<String, Object> post = new HashMap<>();
         List<InfoTags> tags = tagToImgMapper.getImagesTags(image.getId());
         post.put("chat_id", chatId);
@@ -233,12 +243,15 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
                 Optional.ofNullable(image.getAuthor()).orElse("无"),
                 Optional.ofNullable(image.getWidth()).orElse(0),
                 Optional.ofNullable(image.getHeight()).orElse(0),
-                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
+                tags.stream()
+                        .limit(5)
+                        .map(InfoTags::getTag)
+                        .collect(Collectors.joining(" , ", "#", ""))));
         Map<String, Object> reply_markup = new HashMap<>(1);
         post.put("reply_markup", reply_markup);
         List<List<Map<String, String>>> keyboard = new ArrayList<>();
         Map<String, String> np = new HashMap<>();
-        np.put("text", "next");
+        np.put("text", messageSource.getMessage("bk.message.to-next", null, "bk.message.to-next", locale));
         np.put("callback_data", "tagsCbForNextImage=" + image.getId() + "," + tagId);
         keyboard.add(Collections.singletonList(np));
         reply_markup.put("inline_keyboard", keyboard);
@@ -251,10 +264,15 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     private JsonNode chatRandomParameters(String path, Map<String, Object> status) {
         ImgLinks links = (ImgLinks) status.get("image");
         JsonNode origin = (JsonNode) status.get("chat");
+        Locale locale = Optional.ofNullable(status.get("language"))
+                .map(Object::toString)
+                .map(Locale::forLanguageTag)
+                .orElse(Locale.JAPAN);
         JsonNode rep = (JsonNode) status.get("replay");
         Long rChatId = JSONUtils.readJsonObject(rep, "result.chat.id", Long.class);
         Long rMessageId = JSONUtils.readJsonObject(rep, "result.message_id", Long.class);
-        editMessage("download completed, sending", rChatId, rMessageId);
+        editMessage(messageSource.getMessage("bk.message.download-completed", null, "bk.message.download-completed", locale),
+                rChatId, rMessageId);
         Map<String, Object> post = new HashMap<>();
         List<InfoTags> tags = tagToImgMapper.getImagesTags(links.getId());
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);

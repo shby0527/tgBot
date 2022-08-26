@@ -119,6 +119,7 @@ public class TagsInlineCallbackService implements InlineCallbackService {
         // 这里发送websocket的消息，下载图片
         Map<String, Object> saveStatus = new HashMap<>(2);
         saveStatus.put("service", "chatRandomCallbackService");
+        saveStatus.put("language", locale.toLanguageTag());
         saveStatus.put("image", links);
         saveStatus.put("chat", jsonNode);
         saveStatus.put("replay", rep);
@@ -202,7 +203,9 @@ public class TagsInlineCallbackService implements InlineCallbackService {
                 Optional.ofNullable(links.getAuthor()).orElse("无"),
                 Optional.ofNullable(links.getWidth()).orElse(0),
                 Optional.ofNullable(links.getHeight()).orElse(0),
-                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
+                tags.stream().limit(5)
+                        .map(InfoTags::getTag)
+                        .collect(Collectors.joining(" , ", "#", ""))));
         post.put("document", uploaded.getTgid());
         String url = telegramBotProperties.getUrl() + "sendDocument";
         try {

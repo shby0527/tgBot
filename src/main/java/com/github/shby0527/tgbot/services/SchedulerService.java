@@ -8,5 +8,5 @@ public interface SchedulerService {
     /**
      * 执行调度
      */
-    void scheduler(Long chatId, String arguments);
+    void scheduler(Long userid, Long chatId, String arguments);
 }

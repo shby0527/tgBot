@@ -98,6 +98,7 @@ public class TagsCbForNextImageService implements InlineCallbackService {
         Map<String, Object> saveStatus = new HashMap<>(2);
         saveStatus.put("service", "selectionNextImage");
         saveStatus.put("image", links);
+        saveStatus.put("language", locale.toLanguageTag());
         saveStatus.put("selection", node);
         saveStatus.put("tagId", tagId);
         saveStatus.put("replay", replay);
@@ -229,7 +230,10 @@ public class TagsCbForNextImageService implements InlineCallbackService {
                 Optional.ofNullable(links.getAuthor()).orElse("无"),
                 Optional.ofNullable(links.getWidth()).orElse(0),
                 Optional.ofNullable(links.getHeight()).orElse(0),
-                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
+                tags.stream()
+                        .limit(5)
+                        .map(InfoTags::getTag)
+                        .collect(Collectors.joining(" , ", "#", ""))));
         post.put("document", uploaded.getTgid());
         Map<String, Object> reply_markup = new HashMap<>(1);
         post.put("reply_markup", reply_markup);

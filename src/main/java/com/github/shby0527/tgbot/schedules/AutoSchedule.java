@@ -54,7 +54,7 @@ public class AutoSchedule {
                         }
                     }
                     userJobsMapper.updateNextTruck(p.getId(), nextTruck);
-                    schedulerService.scheduler(p.getChatid(), p.getArguments());
+                    schedulerService.scheduler(p.getUserid(), p.getChatid(), p.getArguments());
                 });
     }
 

@@ -1,12 +1,10 @@
 package com.github.shby0527.tgbot.services.impl;
 
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
-import com.github.shby0527.tgbot.dao.ImgLinksMapper;
-import com.github.shby0527.tgbot.dao.InfoTagsMapper;
-import com.github.shby0527.tgbot.dao.TagToImgMapper;
-import com.github.shby0527.tgbot.dao.TgUploadedMapper;
+import com.github.shby0527.tgbot.dao.*;
 import com.github.shby0527.tgbot.entities.ImgLinks;
 import com.github.shby0527.tgbot.entities.TgUploaded;
+import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.SchedulerService;
@@ -46,6 +44,9 @@ public class AutoSendSchedulerService implements SchedulerService {
     private TgUploadedMapper tgUploadedMapper;
 
     @Autowired
+    private UserInfoMapper userInfoMapper;
+
+    @Autowired
     private IHttpService httpService;
 
     @Autowired
@@ -54,20 +55,22 @@ public class AutoSendSchedulerService implements SchedulerService {
 
     @Override
     @Async("statsExecutor")
-    public void scheduler(Long chatId, String arguments) {
+    public void scheduler(Long userid, Long chatId, String arguments) {
         if (StringUtils.isEmpty(arguments)) return;
         Collection<Long> tags = infoTagsMapper.selectTagsToId(arguments);
         List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags, null);
         Collections.shuffle(imageIds);
         ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageIds.get(0));
         TgUploaded tgUploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());
+        Userinfo userinfo = userInfoMapper.selectByPrimaryKey(userid);
         if (tgUploaded != null) {
             sendDocument(tgUploaded, chatId);
             return;
         }
-        Map<String, Object> saveStatus = new HashMap<>(2);
+        Map<String, Object> saveStatus = new HashMap<>(6);
         saveStatus.put("service", "scheduledCallbackService");
         saveStatus.put("image", links);
+        saveStatus.put("language", userinfo.getLanguageCode());
         saveStatus.put("scc", chatId);
         String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();

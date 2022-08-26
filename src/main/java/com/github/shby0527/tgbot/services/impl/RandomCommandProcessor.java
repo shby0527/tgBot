@@ -111,6 +111,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         Map<String, Object> saveStatus = new HashMap<>(2);
         saveStatus.put("service", "chatRandomCallbackService");
         saveStatus.put("image", imgLinks);
+        saveStatus.put("language", locale.toLanguageTag());
         saveStatus.put("chat", node);
         saveStatus.put("replay", rep);
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
@@ -157,7 +158,9 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
                 Optional.ofNullable(links.getAuthor()).orElse("无"),
                 Optional.ofNullable(links.getWidth()).orElse(0),
                 Optional.ofNullable(links.getHeight()).orElse(0),
-                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
+                tags.stream().limit(5)
+                        .map(InfoTags::getTag)
+                        .collect(Collectors.joining(" , ", "#", ""))));
         post.put("document", uploaded.getTgid());
         String url = botProperties.getUrl() + "sendDocument";
         try {
