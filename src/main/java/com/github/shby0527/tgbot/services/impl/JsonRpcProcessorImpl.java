@@ -246,7 +246,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
                 tags.stream()
                         .limit(5)
                         .map(InfoTags::getTag)
-                        .collect(Collectors.joining(" , ", "#", ""))));
+                        .collect(Collectors.joining(" , #", "#", ""))));
         Map<String, Object> reply_markup = new HashMap<>(1);
         post.put("reply_markup", reply_markup);
         List<List<Map<String, String>>> keyboard = new ArrayList<>();
@@ -285,7 +285,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
                 Optional.ofNullable(links.getAuthor()).orElse("无"),
                 Optional.ofNullable(links.getWidth()).orElse(0),
                 Optional.ofNullable(links.getHeight()).orElse(0),
-                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , "))));
+                tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , #", "#", ""))));
         JsonNode backJson = sendDocument("file://" + path, post);
         Long chatId = JSONUtils.readJsonObject(origin, "message.chat.id", Long.class);
         deleteMessage(chatId, rMessageId);

@@ -233,7 +233,7 @@ public class TagsCbForNextImageService implements InlineCallbackService {
                 tags.stream()
                         .limit(5)
                         .map(InfoTags::getTag)
-                        .collect(Collectors.joining(" , ", "#", ""))));
+                        .collect(Collectors.joining(" , #", "#", ""))));
         post.put("document", uploaded.getTgid());
         Map<String, Object> reply_markup = new HashMap<>(1);
         post.put("reply_markup", reply_markup);

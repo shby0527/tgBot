@@ -205,7 +205,7 @@ public class TagsInlineCallbackService implements InlineCallbackService {
                 Optional.ofNullable(links.getHeight()).orElse(0),
                 tags.stream().limit(5)
                         .map(InfoTags::getTag)
-                        .collect(Collectors.joining(" , ", "#", ""))));
+                        .collect(Collectors.joining(" , #", "#", ""))));
         post.put("document", uploaded.getTgid());
         String url = telegramBotProperties.getUrl() + "sendDocument";
         try {

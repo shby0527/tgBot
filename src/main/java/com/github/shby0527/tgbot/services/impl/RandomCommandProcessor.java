@@ -160,7 +160,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
                 Optional.ofNullable(links.getHeight()).orElse(0),
                 tags.stream().limit(5)
                         .map(InfoTags::getTag)
-                        .collect(Collectors.joining(" , ", "#", ""))));
+                        .collect(Collectors.joining(" , #", "#", ""))));
         post.put("document", uploaded.getTgid());
         String url = botProperties.getUrl() + "sendDocument";
         try {
