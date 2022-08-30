@@ -27,6 +27,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -186,7 +187,7 @@ public class TagsInlineCallbackService implements InlineCallbackService {
 
         return mono
                 .checkpoint()
-                .blockOptional()
+                .blockOptional(Duration.ofMillis(5))
                 .orElse(null);
     }
 

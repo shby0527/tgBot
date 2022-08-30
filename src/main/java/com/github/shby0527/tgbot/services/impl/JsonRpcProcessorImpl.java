@@ -29,6 +29,7 @@ import reactor.core.publisher.Mono;
 import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -326,7 +327,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
             });
             return mono
                     .checkpoint("send Document")
-                    .blockOptional()
+                    .blockOptional(Duration.ofMillis(5))
                     .orElse(null);
         } catch (IOException e) {
             log.error(e.getMessage(), e);
