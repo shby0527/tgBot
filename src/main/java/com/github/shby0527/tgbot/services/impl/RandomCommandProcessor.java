@@ -211,7 +211,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         });
         return mono
                 .checkpoint()
-                .blockOptional(Duration.ofMillis(5))
+                .blockOptional(Duration.ofMinutes(5))
                 .orElse(null);
     }
 

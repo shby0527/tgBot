@@ -327,7 +327,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
             });
             return mono
                     .checkpoint("send Document")
-                    .blockOptional(Duration.ofMillis(5))
+                    .blockOptional(Duration.ofMinutes(5))
                     .orElse(null);
         } catch (IOException e) {
             log.error(e.getMessage(), e);

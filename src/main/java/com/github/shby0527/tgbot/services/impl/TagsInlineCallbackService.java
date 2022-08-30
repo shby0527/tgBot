@@ -187,7 +187,7 @@ public class TagsInlineCallbackService implements InlineCallbackService {
 
         return mono
                 .checkpoint()
-                .blockOptional(Duration.ofMillis(5))
+                .blockOptional(Duration.ofMinutes(5))
                 .orElse(null);
     }
 
