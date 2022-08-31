@@ -76,7 +76,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
     }
 
     @Override
-    public synchronized void process(String[] arguments, JsonNode node) {
+    public void process(String[] arguments, JsonNode node) {
         ImgLinks imgLinks = null;
         if (arguments.length == 0) {
             ImgLinks links = imgLinksMapper.getLatestImage();
@@ -199,14 +199,14 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
                         JsonNode back = httpResponse.getJson();
                         log.debug("return back {}", back);
                         sink.success(back);
-                        return;
                     } catch (IOException e) {
                         log.error(e.getMessage(), e);
+                        sink.error(e);
                     }
-                    sink.success();
                 });
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
+                sink.error(e);
             }
         });
         return mono

@@ -149,14 +149,14 @@ public class TagsCbForNextImageService implements InlineCallbackService {
                         JsonNode back = httpResponse.getJson();
                         log.debug("return back {}", back);
                         sink.success(back);
-                        return;
                     } catch (IOException e) {
                         log.error(e.getMessage(), e);
+                        sink.error(e);
                     }
-                    sink.success();
                 });
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
+                sink.error(e);
             }
         });
 
@@ -203,14 +203,14 @@ public class TagsCbForNextImageService implements InlineCallbackService {
                         JsonNode back = httpResponse.getJson();
                         log.debug("return back {}", back);
                         sink.success(back);
-                        return;
                     } catch (IOException e) {
                         log.error(e.getMessage(), e);
+                        sink.error(e);
                     }
-                    sink.success();
                 });
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
+                sink.error(e);
             }
         });
 

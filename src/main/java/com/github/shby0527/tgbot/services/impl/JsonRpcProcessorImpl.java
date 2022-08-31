@@ -24,16 +24,12 @@ import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
-import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.time.Duration;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -64,12 +60,10 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     @Autowired
     private MessageSource messageSource;
 
-    private final static Pattern PATTERN = Pattern.compile("^([a-zA-Z]+)-\\d+$");
-
     private final Map<String, BiConsumer<WebSocketSession, JsonNode>> METHOD_CALL;
 
 
-    private final Map<String, BiFunction<String, Map<String, Object>, JsonNode>> SEND_DOCUMENT_PARAMETERS;
+    private final Map<String, BiConsumer<String, Map<String, Object>>> SEND_DOCUMENT_PARAMETERS;
 
     public JsonRpcProcessorImpl() {
         METHOD_CALL = new HashMap<>();
@@ -113,17 +107,9 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         redisTemplate.delete(key);
         Object service = map.get("service");
         if (service == null) return;
-        BiFunction<String, Map<String, Object>, JsonNode> function = SEND_DOCUMENT_PARAMETERS.get(service);
+        BiConsumer<String, Map<String, Object>> function = SEND_DOCUMENT_PARAMETERS.get(service);
         if (function == null) return;
-        JsonNode backJson = function.apply(path, map);
-        log.debug("back json {}", backJson);
-        if (Optional.ofNullable(backJson).map(t -> t.get("ok")).map(JsonNode::booleanValue).orElse(false)) {
-            TgUploaded tgUploaded = new TgUploaded();
-            tgUploaded.setImgid(Long.valueOf(id));
-            tgUploaded.setStatus((byte) 1);
-            tgUploaded.setTgid(JSONUtils.readJsonObject(backJson, "result.document.file_id", String.class));
-            tgUploadedMapper.insertSelective(tgUploaded);
-        }
+        function.accept(path, map);
     }
 
     private void getFileFailCallback(JsonNode json) {
@@ -225,7 +211,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
     }
 
 
-    private JsonNode selectionNextImage(String path, Map<String, Object> status) {
+    private void selectionNextImage(String path, Map<String, Object> status) {
         ImgLinks image = (ImgLinks) status.get("image");
         JsonNode replay = (JsonNode) status.get("replay");
         Locale locale = Optional.ofNullable(status.get("language"))
@@ -256,13 +242,12 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         np.put("callback_data", "tagsCbForNextImage=" + image.getId() + "," + tagId);
         keyboard.add(Collections.singletonList(np));
         reply_markup.put("inline_keyboard", keyboard);
-        JsonNode backJson = sendDocument("file://" + path, post);
+        sendDocument("file://" + path, post);
         deleteMessage(chatId, messageId);
-        return backJson;
     }
 
 
-    private JsonNode chatRandomParameters(String path, Map<String, Object> status) {
+    private void chatRandomParameters(String path, Map<String, Object> status) {
         ImgLinks links = (ImgLinks) status.get("image");
         JsonNode origin = (JsonNode) status.get("chat");
         Locale locale = Optional.ofNullable(status.get("language"))
@@ -287,52 +272,51 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
                 Optional.ofNullable(links.getWidth()).orElse(0),
                 Optional.ofNullable(links.getHeight()).orElse(0),
                 tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , #", "#", ""))));
-        JsonNode backJson = sendDocument("file://" + path, post);
+        sendDocument("file://" + path, post);
         Long chatId = JSONUtils.readJsonObject(origin, "message.chat.id", Long.class);
         deleteMessage(chatId, rMessageId);
-        return backJson;
     }
 
-    private JsonNode scheduledCallbackService(String path, Map<String, Object> status) {
+    private void scheduledCallbackService(String path, Map<String, Object> status) {
         Long scc = (Long) status.get("scc");
         Map<String, Object> post = new HashMap<>();
         post.put("chat_id", scc);
-        return sendDocument("file://" + path, post);
+        sendDocument("file://" + path, post);
     }
 
 
-    private JsonNode sendDocument(String path, Map<String, Object> post) {
+    private void sendDocument(String path, Map<String, Object> post) {
 
         post.put("document", path);
         String url = telegramBotProperties.getUrl() + "sendDocument";
         try {
             String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
             log.debug("post data: {}", json);
-            Mono<JsonNode> mono = Mono.create(sink -> {
-                try {
-                    httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
-                        try (httpResponse) {
-                            JsonNode back = httpResponse.getJson();
-                            log.debug("return back {}", back);
-                            sink.success(back);
-                            return;
-                        } catch (IOException e) {
-                            log.error(e.getMessage(), e);
-                        }
-                        sink.success();
-                    });
+
+            httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                try (httpResponse) {
+                    JsonNode back = httpResponse.getJson();
+                    log.debug("return back {}", back);
+                    if (back.get("ok").booleanValue()) {
+                        File file = new File(path);
+                        String name = file.getName();
+                        int index = name.lastIndexOf('.');
+                        String id = name.substring(0, index);
+                        TgUploaded tgUploaded = new TgUploaded();
+                        tgUploaded.setImgid(Long.valueOf(id));
+                        tgUploaded.setStatus((byte) 1);
+                        tgUploaded.setTgid(JSONUtils.readJsonObject(back, "result.document.file_id", String.class));
+                        tgUploadedMapper.insertSelective(tgUploaded);
+                    }
                 } catch (IOException e) {
                     log.error(e.getMessage(), e);
+
                 }
             });
-            return mono
-                    .checkpoint("send Document")
-                    .blockOptional(Duration.ofMinutes(5))
-                    .orElse(null);
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
-        return null;
+
     }
 
 
