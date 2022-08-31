@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -242,8 +243,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         np.put("callback_data", "tagsCbForNextImage=" + image.getId() + "," + tagId);
         keyboard.add(Collections.singletonList(np));
         reply_markup.put("inline_keyboard", keyboard);
-        sendDocument("file://" + path, post);
-        deleteMessage(chatId, messageId);
+        sendDocument("file://" + path, post, ignored -> deleteMessage(chatId, messageId));
     }
 
 
@@ -272,20 +272,21 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
                 Optional.ofNullable(links.getWidth()).orElse(0),
                 Optional.ofNullable(links.getHeight()).orElse(0),
                 tags.stream().limit(5).map(InfoTags::getTag).collect(Collectors.joining(" , #", "#", ""))));
-        sendDocument("file://" + path, post);
-        Long chatId = JSONUtils.readJsonObject(origin, "message.chat.id", Long.class);
-        deleteMessage(chatId, rMessageId);
+        sendDocument("file://" + path, post, ignored -> {
+            Long chatId = JSONUtils.readJsonObject(origin, "message.chat.id", Long.class);
+            deleteMessage(chatId, rMessageId);
+        });
     }
 
     private void scheduledCallbackService(String path, Map<String, Object> status) {
         Long scc = (Long) status.get("scc");
         Map<String, Object> post = new HashMap<>();
         post.put("chat_id", scc);
-        sendDocument("file://" + path, post);
+        sendDocument("file://" + path, post, null);
     }
 
 
-    private void sendDocument(String path, Map<String, Object> post) {
+    private void sendDocument(String path, Map<String, Object> post, Consumer<Void> finished) {
 
         post.put("document", path);
         String url = telegramBotProperties.getUrl() + "sendDocument";
@@ -310,7 +311,10 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
                     }
                 } catch (IOException e) {
                     log.error(e.getMessage(), e);
-
+                } finally {
+                    if (finished != null) {
+                        finished.accept(null);
+                    }
                 }
             });
         } catch (IOException e) {
