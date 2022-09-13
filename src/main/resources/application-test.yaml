@@ -149,6 +149,12 @@ bot:
         service: listTriggerCommandProcessor
         description: command.list-trigger.description
         arguments: []
+      imageid:
+        service: sendImageForIdCommandProcessor
+        description: command.image-id.description
+        arguments:
+          - name: command.image-id.argument.id
+            option: false
   aria2:
     address: ws://192.168.10.187:6800/jsonrpc
     http: http://192.168.10.187:6800/jsonrpc
