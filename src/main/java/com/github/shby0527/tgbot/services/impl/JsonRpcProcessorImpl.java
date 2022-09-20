@@ -106,7 +106,7 @@ public class JsonRpcProcessorImpl implements JsonRpcProcessor {
         Map<String, Object> map = (Map<String, Object>) ops.get(key);
         if (map == null) return;
         redisTemplate.delete(key);
-        Object service = map.get("service");
+        String service = (String) map.get("service");
         if (service == null) return;
         BiConsumer<String, Map<String, Object>> function = SEND_DOCUMENT_PARAMETERS.get(service);
         if (function == null) return;

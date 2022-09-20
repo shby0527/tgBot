@@ -53,6 +53,11 @@
         </dependency>
 
         <dependency>
+            <groupId>co.elastic.clients</groupId>
+            <artifactId>elasticsearch-java</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.xw.web</groupId>
             <artifactId>xw-utils</artifactId>
         </dependency>

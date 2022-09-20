@@ -1,5 +1,9 @@
 package com.github.shby0527.tgbot.services.impl;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.InfoTagsMapper;
@@ -46,6 +50,9 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
     @Autowired
     private MessageSource messageSource;
 
+    @Autowired
+    private ElasticsearchClient elasticsearchClient;
+
     @Override
     public void process(String[] arguments, JsonNode node) {
         String type = JSONUtils.readJsonObject(node, "message.chat.type", String.class);
@@ -58,7 +65,7 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
                     node, null, null, locale);
             return;
         }
-        List<InfoTags> tags = infoTagsMapper.selectByTags(arguments[0], null, 10);
+        List<InfoTags> tags = searchForTags(arguments[0]);
         if (tags.isEmpty()) {
             sendText(messageSource.getMessage("replay.search.no-tags-found", null, "replay.search.no-tags-found", locale),
                     node, null, null, locale);
@@ -66,6 +73,24 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
         }
         sendText(messageSource.getMessage("replay.search.tags-selection", null, "replay.search.tags-selection", locale),
                 node, tags, arguments[0], locale);
+    }
+
+    private List<InfoTags> searchForTags(String keyword) {
+        try {
+            SearchResponse<InfoTags> search = elasticsearchClient.search(SearchRequest.of(builder ->
+                    builder.query(query ->
+                                    query.match(match ->
+                                            match.field("tag").query(keyword)))
+                            .size(10)
+            ), InfoTags.class);
+            return search.hits().hits()
+                    .stream()
+                    .map(Hit::source)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            return Collections.emptyList();
+        }
     }
 
 
@@ -91,16 +116,6 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
                             }, Collectors.toList())))
                     .values();
             List<List<Map<String, String>>> keyboard = new ArrayList<>(root);
-            if (tags.size() >= 10) {
-                Map<String, String> nextSelection = new HashMap<>();
-                nextSelection.put("text", messageSource.getMessage("replay.search.next", null, "replay.search.next", locale));
-                nextSelection.put("callback_data", "tagsCbToNextPageTags=next," +
-                        pagination(condition,
-                                tags.stream()
-                                        .mapToLong(InfoTags::getId)
-                                        .max().orElse(0L)));
-                keyboard.add(Collections.singletonList(nextSelection));
-            }
             reply_markup.put("inline_keyboard", keyboard);
         }
         String url = botProperties.getUrl() + "sendMessage";

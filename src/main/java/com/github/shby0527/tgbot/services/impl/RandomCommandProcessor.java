@@ -1,5 +1,9 @@
 package com.github.shby0527.tgbot.services.impl;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.*;
@@ -66,6 +70,9 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
     @Autowired
     private MessageSource messageSource;
 
+    @Autowired
+    private ElasticsearchClient elasticsearchClient;
+
     private final Collection<Long> notInTags;
 
     public RandomCommandProcessor(Environment environment) {
@@ -73,6 +80,25 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
         Bindable<List<Long>> bindable = Bindable.listOf(Long.class);
         BindResult<List<Long>> bind = binder.bind("bot.extarn", bindable);
         notInTags = bind.orElse(Collections.emptyList());
+    }
+
+    private List<Long> searchForTags(String keyword) {
+        try {
+            SearchResponse<InfoTags> search = elasticsearchClient.search(SearchRequest.of(builder ->
+                    builder.query(query ->
+                                    query.match(match ->
+                                            match.field("tag").query(keyword)))
+                            .size(10)
+            ), InfoTags.class);
+            return search.hits().hits()
+                    .stream()
+                    .map(Hit::source)
+                    .filter(Objects::nonNull)
+                    .map(InfoTags::getId)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            return Collections.emptyList();
+        }
     }
 
     @Override
@@ -83,7 +109,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
             long id = RandomUtils.nextLong(1, links.getId());
             imgLinks = imgLinksMapper.getNearIdImage(id);
         } else {
-            Collection<Long> tags = infoTagsMapper.selectTagsToId(arguments[0]);
+            Collection<Long> tags = searchForTags(arguments[0]);
             if (!tags.isEmpty()) {
                 List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags, notInTags);
                 if (!imageIds.isEmpty()) {

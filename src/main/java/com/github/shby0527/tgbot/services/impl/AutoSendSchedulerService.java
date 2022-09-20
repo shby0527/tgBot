@@ -1,8 +1,13 @@
 package com.github.shby0527.tgbot.services.impl;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.*;
 import com.github.shby0527.tgbot.entities.ImgLinks;
+import com.github.shby0527.tgbot.entities.InfoTags;
 import com.github.shby0527.tgbot.entities.TgUploaded;
 import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
@@ -21,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service("autoSendSchedulerService")
@@ -52,12 +58,34 @@ public class AutoSendSchedulerService implements SchedulerService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+    @Autowired
+    private ElasticsearchClient elasticsearchClient;
+
+    private List<Long> searchForTags(String keyword) {
+        try {
+            SearchResponse<InfoTags> search = elasticsearchClient.search(SearchRequest.of(builder ->
+                    builder.query(query ->
+                                    query.match(match ->
+                                            match.field("tag").query(keyword)))
+                            .size(10)
+            ), InfoTags.class);
+            return search.hits().hits()
+                    .stream()
+                    .map(Hit::source)
+                    .filter(Objects::nonNull)
+                    .map(InfoTags::getId)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            return Collections.emptyList();
+        }
+    }
+
 
     @Override
     @Async("statsExecutor")
     public void scheduler(Long userid, Long chatId, String arguments) {
         if (StringUtils.isEmpty(arguments)) return;
-        Collection<Long> tags = infoTagsMapper.selectTagsToId(arguments);
+        Collection<Long> tags = searchForTags(arguments);
         List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags, null);
         Collections.shuffle(imageIds);
         ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageIds.get(0));
