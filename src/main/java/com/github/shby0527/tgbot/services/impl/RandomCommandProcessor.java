@@ -109,7 +109,7 @@ public class RandomCommandProcessor implements RegisterBotCommandService {
             long id = RandomUtils.nextLong(1, links.getId());
             imgLinks = imgLinksMapper.getNearIdImage(id);
         } else {
-            Collection<Long> tags = searchForTags(arguments[0]);
+            Collection<Long> tags = searchForTags(String.join(" ", arguments));
             if (!tags.isEmpty()) {
                 List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags, notInTags);
                 if (!imageIds.isEmpty()) {

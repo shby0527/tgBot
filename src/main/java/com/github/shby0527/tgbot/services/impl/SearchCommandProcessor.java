@@ -65,7 +65,7 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
                     node, null, null, locale);
             return;
         }
-        List<InfoTags> tags = searchForTags(arguments[0]);
+        List<InfoTags> tags = searchForTags(String.join(" ", arguments));
         if (tags.isEmpty()) {
             sendText(messageSource.getMessage("replay.search.no-tags-found", null, "replay.search.no-tags-found", locale),
                     node, null, null, locale);
