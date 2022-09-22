@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.TagToImgMapper;
 import com.github.shby0527.tgbot.dao.UserInfoMapper;
+import com.github.shby0527.tgbot.entities.InfoTags;
 import com.github.shby0527.tgbot.entities.TagPopular;
 import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
@@ -49,16 +50,43 @@ public class PopularTagsCommandProcessor implements RegisterBotCommandService {
 
     @Override
     public void process(String[] arguments, JsonNode origin) {
+        JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
+        JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
+        Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
+        Locale locale = getUserLocal(from);
+        if (arguments.length > 0) {
+            try {
+                long imageId = Long.parseLong(arguments[0]);
+                List<InfoTags> imagesTags = tagToImgMapper.getImagesTags(imageId);
+                String text = imagesTags
+                        .stream()
+                        .map(InfoTags::getTag)
+                        .collect(Collectors.joining(" , #", "#", ""));
+                String url = telegramBotProperties.getUrl() + "sendMessage";
+                Map<String, Object> post = new HashMap<>();
+                post.put("reply_to_message_id", messageId);
+                post.put("text", text + "\n @" + Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""));
+                post.put("chat_id", chat.get("id").longValue());
+                String json = JSONUtils.OBJECT_MAPPER.writeValueAsString(post);
+                httpService.postForString(url, null, null, json, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                    try (httpResponse) {
+                        JsonNode back = httpResponse.getJson();
+                        log.debug("return back {}", back);
+                    } catch (IOException e) {
+                        log.error(e.getMessage(), e);
+                    }
+                });
+            } catch (Throwable t) {
+                log.error("error", t);
+            }
+            return;
+        }
         ValueOperations<String, Collection<TagPopular>> ops = redisTemplate.opsForValue();
         Collection<TagPopular> tagPopular = ops.get(RedisKeyConstant.POPULAR_TAGS);
         if (tagPopular == null) {
             tagPopular = tagToImgMapper.getTopOfTags(50);
             ops.set(RedisKeyConstant.POPULAR_TAGS, tagPopular, 30, TimeUnit.DAYS);
         }
-        JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
-        JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
-        Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
-        Locale locale = getUserLocal(from);
         Map<String, Object> post = new HashMap<>();
         post.put("reply_to_message_id", messageId);
         String text = messageSource.getMessage("replay.tags.top", null, "replay.tags.top", locale);

@@ -118,7 +118,9 @@ bot:
       tags:
         service: popularTagsCommandProcessor
         description: command.tags.description
-        arguments: []
+        arguments:
+          - name: command.tags.argument.id
+            option: true
       start:
         service: helpingCommandProcessor
         description: command.start.description
