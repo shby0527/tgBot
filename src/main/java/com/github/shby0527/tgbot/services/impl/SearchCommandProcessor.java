@@ -78,7 +78,9 @@ public class SearchCommandProcessor implements RegisterBotCommandService {
     private List<InfoTags> searchForTags(String keyword) {
         try {
             SearchResponse<InfoTags> search = elasticsearchClient.search(SearchRequest.of(builder ->
-                    builder.query(query ->
+                    builder
+                            .index("tagfor-py")
+                            .query(query ->
                                     query.match(match ->
                                             match.field("tag").query(keyword)))
                             .size(10)

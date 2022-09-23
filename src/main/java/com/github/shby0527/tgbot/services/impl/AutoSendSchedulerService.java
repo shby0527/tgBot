@@ -4,12 +4,10 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
 import com.github.shby0527.tgbot.constants.RedisKeyConstant;
 import com.github.shby0527.tgbot.dao.*;
-import com.github.shby0527.tgbot.entities.ImgLinks;
-import com.github.shby0527.tgbot.entities.InfoTags;
-import com.github.shby0527.tgbot.entities.TgUploaded;
-import com.github.shby0527.tgbot.entities.Userinfo;
+import com.github.shby0527.tgbot.entities.*;
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.SchedulerService;
@@ -63,17 +61,26 @@ public class AutoSendSchedulerService implements SchedulerService {
 
     private List<Long> searchForTags(String keyword) {
         try {
-            SearchResponse<InfoTags> search = elasticsearchClient.search(SearchRequest.of(builder ->
-                    builder.query(query ->
+            SearchResponse<ImageTags> search = elasticsearchClient.search(SearchRequest.of(builder ->
+                    builder
+                            .index("imagesearch-py")
+                            .query(query ->
                                     query.match(match ->
-                                            match.field("tag").query(keyword)))
-                            .size(10)
-            ), InfoTags.class);
-            return search.hits().hits()
+                                            match.field("tags").query(keyword)))
+                            .size(500)
+            ), ImageTags.class);
+            Double maxScore = Optional.ofNullable(search.hits())
+                    .map(HitsMetadata::maxScore)
+                    .orElse(0D);
+            return Optional.ofNullable(search.hits())
+                    .map(HitsMetadata::hits)
+                    .orElse(Collections.emptyList())
                     .stream()
+                    .filter(p -> Optional.ofNullable(p).map(Hit::score).orElse(0D) >= maxScore - 20D)
+                    .filter(Objects::nonNull)
                     .map(Hit::source)
                     .filter(Objects::nonNull)
-                    .map(InfoTags::getId)
+                    .map(ImageTags::getImageid)
                     .collect(Collectors.toList());
         } catch (IOException e) {
             return Collections.emptyList();
@@ -85,8 +92,11 @@ public class AutoSendSchedulerService implements SchedulerService {
     @Async("statsExecutor")
     public void scheduler(Long userid, Long chatId, String arguments) {
         if (StringUtils.isEmpty(arguments)) return;
-        Collection<Long> tags = searchForTags(arguments);
-        List<Long> imageIds = tagToImgMapper.tagsIdToImageId(tags, null);
+        Collection<Long> images = searchForTags(arguments);
+        if (images.isEmpty()) {
+            return;
+        }
+        List<Long> imageIds = new ArrayList<>(images);
         Collections.shuffle(imageIds);
         ImgLinks links = imgLinksMapper.selectByPrimaryKey(imageIds.get(0));
         TgUploaded tgUploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());
