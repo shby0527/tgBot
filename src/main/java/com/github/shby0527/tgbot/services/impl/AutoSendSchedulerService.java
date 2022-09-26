@@ -63,7 +63,7 @@ public class AutoSendSchedulerService implements SchedulerService {
         try {
             SearchResponse<ImageTags> search = elasticsearchClient.search(SearchRequest.of(builder ->
                     builder
-                            .index("imagesearch-py")
+                            .index("imagesearch-*")
                             .query(query ->
                                     query.match(match ->
                                             match.field("tags").query(keyword)))
