@@ -44,7 +44,7 @@ public class EsTest {
                     .map(HitsMetadata::hits)
                     .orElse(Collections.emptyList())
                     .stream()
-                    .filter(p -> Optional.ofNullable(p).map(Hit::score).orElse(0D) >= maxScore - 20D)
+                    .filter(p -> Optional.ofNullable(p).map(Hit::score).orElse(0D) >= maxScore - 10D)
                     .filter(Objects::nonNull)
                     .map(Hit::source)
                     .filter(Objects::nonNull)
