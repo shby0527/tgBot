@@ -48,7 +48,7 @@ public class UnRegisterCommandExecutorImpl implements UnRegisterCommandExecutor 
         try {
             jsonNode = JSONUtils.OBJECT_MAPPER.readTree(resourceLoader.readForUnRegisterAction());
         } catch (JsonProcessingException e) {
-            log.error("error to parse json", r);
+            log.error("error to parse json", e);
             return;
         }
         log.debug("language = {}", local.getLanguage());
