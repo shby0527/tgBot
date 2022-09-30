@@ -1,6 +1,5 @@
 package com.github.shby0527.tgbot.services.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.services.OssResourceLoader;
 import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
@@ -22,9 +21,9 @@ public class OssResourceLoaderImpl implements OssResourceLoader {
 
     @Override
     @Cacheable(cacheNames = "ugAction", key = "'config'")
-    public JsonNode readForUnRegisterAction() {
+    public String readForUnRegisterAction() {
         try (HttpResponse response = httpService.get(actionLink, null, null, null)) {
-            return response.getJson();
+            return response.getContent();
         } catch (Throwable t) {
             log.error("visited fail", t);
             return null;

@@ -1,5 +1,6 @@
 package com.github.shby0527.tgbot.services.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.dao.UserInfoMapper;
 import com.github.shby0527.tgbot.entities.Userinfo;
@@ -43,7 +44,13 @@ public class UnRegisterCommandExecutorImpl implements UnRegisterCommandExecutor 
         JsonNode message = origin.get("message");
         JsonNode from = message.get("from");
         Locale local = getUserLocal(from);
-        JsonNode jsonNode = resourceLoader.readForUnRegisterAction();
+        JsonNode jsonNode = null;
+        try {
+            jsonNode = JSONUtils.OBJECT_MAPPER.readTree(resourceLoader.readForUnRegisterAction());
+        } catch (JsonProcessingException e) {
+            log.error("error to parse json", r);
+            return;
+        }
         log.debug("language = {}", local.getLanguage());
         // 读取语言特性
         JsonNode language = jsonNode.get(local.getLanguage());
