@@ -44,6 +44,7 @@ public class UnRegisterCommandExecutorImpl implements UnRegisterCommandExecutor 
         JsonNode from = message.get("from");
         Locale local = getUserLocal(from);
         JsonNode jsonNode = resourceLoader.readForUnRegisterAction();
+        log.debug("language = {}", local.getLanguage());
         // 读取语言特性
         JsonNode language = jsonNode.get(local.getLanguage());
         if (language == null) {

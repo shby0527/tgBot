@@ -21,7 +21,7 @@ public class OssResourceLoaderImpl implements OssResourceLoader {
     private String actionLink;
 
     @Override
-    @Cacheable(cacheNames = "ugAction", key = "config")
+    @Cacheable(cacheNames = "ugAction", key = "'config'")
     public JsonNode readForUnRegisterAction() {
         try (HttpResponse response = httpService.get(actionLink, null, null, null)) {
             return response.getJson();
