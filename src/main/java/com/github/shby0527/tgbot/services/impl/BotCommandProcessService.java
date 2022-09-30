@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.shby0527.tgbot.properties.CommandRegisterProperties;
 import com.github.shby0527.tgbot.services.EntityProcessService;
 import com.github.shby0527.tgbot.services.RegisterBotCommandService;
+import com.github.shby0527.tgbot.services.UnRegisterCommandExecutor;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ public class BotCommandProcessService implements EntityProcessService {
 
     @Autowired(required = false)
     private Map<String, RegisterBotCommandService> registerBotCommandServiceMap = Collections.emptyMap();
+
+    @Autowired
+    private UnRegisterCommandExecutor unRegisterCommandExecutor;
 
     @Override
     public void process(JsonNode entity, JsonNode origin) {
@@ -40,13 +44,21 @@ public class BotCommandProcessService implements EntityProcessService {
             String args = text.substring(offset + length + 1);
             arguments = args.split(" ");
         }
+        String cmd = command.substring(1);
         CommandRegisterProperties.CommandMetadata commandMetadata = commandRegisterProperties.getCommands()
-                .getOrDefault(command.substring(1), null);
-        if (commandMetadata == null) return;
-        RegisterBotCommandService commandService = registerBotCommandServiceMap.get(commandMetadata.getService());
-        if (commandService != null) {
-            commandService.process(arguments, origin);
+                .getOrDefault(cmd, null);
+        if (commandMetadata == null) {
+            // 这里进去的都是未注册命令
+            unRegisterCommandExecutor.execute(cmd, arguments, origin);
+            return;
         }
+        RegisterBotCommandService commandService = registerBotCommandServiceMap.get(commandMetadata.getService());
+        if (commandService == null) {
+            // 这里进去的都是未注册命令
+            unRegisterCommandExecutor.execute(cmd, arguments, origin);
+            return;
+        }
+        commandService.process(arguments, origin);
     }
 
     @Override
