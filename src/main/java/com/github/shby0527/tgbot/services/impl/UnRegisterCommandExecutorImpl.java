@@ -73,7 +73,11 @@ public class UnRegisterCommandExecutorImpl implements UnRegisterCommandExecutor 
         mp.put("replayLastName", Optional.ofNullable(replayUser.get("last_name")).map(JsonNode::textValue).orElse(""));
         mp.put("chatTitle", Optional.ofNullable(chat.get("title")).map(JsonNode::textValue).orElse(""));
         mp.put("chatUsername", Optional.ofNullable(chat.get("username")).map(JsonNode::textValue).orElse(""));
-
+        if (arguments.length > 0) {
+            for (int i = 0; i < arguments.length; i++) {
+                mp.put("arg" + i, arguments[i]);
+            }
+        }
         String finalStr = StringReplaceUtils.replaceWithMap(template, mp);
 
         sendText(finalStr, origin);
