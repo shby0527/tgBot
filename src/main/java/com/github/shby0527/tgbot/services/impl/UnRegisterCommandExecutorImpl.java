@@ -68,7 +68,6 @@ public class UnRegisterCommandExecutorImpl implements UnRegisterCommandExecutor 
         String template = commandReplay.textValue();
         // 准备内容
         JsonNode chat = message.get("chat");
-        Long messageId = message.get("message_id").longValue();
         JsonNode replayMessage = message.get("reply_to_message");
         JsonNode replayUser = replayMessage.get("from");
         Map<String, String> mp = new HashMap<>();
@@ -94,10 +93,9 @@ public class UnRegisterCommandExecutorImpl implements UnRegisterCommandExecutor 
     private void sendText(String text, JsonNode origin) {
         Map<String, Object> post = new HashMap<>();
         JsonNode chat = JSONUtils.readJsonObject(origin, "message.chat", JsonNode.class);
-        JsonNode from = JSONUtils.readJsonObject(origin, "message.from", JsonNode.class);
         Long messageId = JSONUtils.readJsonObject(origin, "message.message_id", Long.class);
         post.put("reply_to_message_id", messageId);
-        post.put("text", text + "\n @" + Optional.ofNullable(from.get("username")).map(JsonNode::textValue).orElse(""));
+        post.put("text", text);
         post.put("chat_id", chat.get("id").longValue());
         String url = botProperties.getUrl() + "sendMessage";
         try {
