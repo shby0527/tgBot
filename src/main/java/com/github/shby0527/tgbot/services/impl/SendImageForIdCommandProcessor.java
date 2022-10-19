@@ -13,6 +13,7 @@ import com.github.shby0527.tgbot.services.RegisterBotCommandService;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -72,65 +73,77 @@ public class SendImageForIdCommandProcessor implements RegisterBotCommandService
             return;
         }
         try {
-            Long id = Long.parseLong(arguments[0]);
-            ImgLinks links = imgLinksMapper.selectByPrimaryKey(id);
-            if (links == null) {
-                String notFound = messageSource.getMessage("replay.image-id.not-found", null, "replay.image-id.not-found", local);
-                sendText(notFound, node, null);
-                return;
+            long id = Long.parseLong(arguments[0]);
+            long end = 0L;
+            if (arguments.length > 1 && NumberUtils.isCreatable(arguments[1])) {
+                end = Long.parseLong(arguments[1]);
             }
-            TgUploaded uploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());
-            if (uploaded != null) {
-                sendDocument(links, uploaded, node, back -> log.debug("finished {}", back));
-                return;
-            }
-            String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
-            if (Optional.ofNullable(redisTemplate.hasKey(key)).orElse(false)) {
-                return;
-            }
-            String downloadingMessage = messageSource.getMessage("replay.random.downloading", null, "replay.random.downloading", local);
-            sendText(downloadingMessage, node, back -> {
-                Map<String, Object> saveStatus = new HashMap<>(2);
-                saveStatus.put("service", "chatRandomCallbackService");
-                saveStatus.put("image", links);
-                saveStatus.put("language", local.toLanguageTag());
-                saveStatus.put("chat", node);
-                saveStatus.put("replay", back);
-                ValueOperations<String, Object> ops = redisTemplate.opsForValue();
-                ops.set(key, saveStatus);
-                // 通过websocket 开始下载
-                Map<String, Object> addUrl = new HashMap<>();
-                Map<String, Object> params = new HashMap<>();
-                int latestIndex = links.getLink().lastIndexOf('.');
-                String ext = links.getLink().substring(latestIndex);
-                params.put("out", links.getId().toString() + ext);
-                addUrl.put("jsonrpc", "2.0");
-                addUrl.put("id", "addrpc-" + links.getId());
-                addUrl.put("method", "aria2.addUri");
-                addUrl.put("params", new Object[]{
-                        "token:" + aria2Properties.getToken(),
-                        new String[]{links.getLink()},
-                        params
-                });
-                try {
-                    String post = JSONUtils.OBJECT_MAPPER.writeValueAsString(addUrl);
-                    httpService.postForString(aria2Properties.getHttp(), null, null, post, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
-                        try (httpResponse) {
-                            log.debug("content:{}", httpResponse.getContent());
-                        } catch (IOException e) {
-                            log.debug("", e);
-                        }
-                    });
-                } catch (IOException e) {
-                    log.debug("获取 session 失败", e);
-                    String fail = messageSource.getMessage("replay.random.fail", null, "replay.random.fail", local);
-                    sendText(fail, node, null);
+            long i = 0;
+            do {
+                ImgLinks links = imgLinksMapper.selectByPrimaryKey(id + i);
+                if (links == null) {
+                    String notFound = messageSource.getMessage("replay.image-id.not-found", null, "replay.image-id.not-found", local);
+                    sendText(notFound, node, null);
+                    i++;
+                    continue;
                 }
-            });
+                TgUploaded uploaded = tgUploadedMapper.selectByPrimaryKey(links.getId());
+                if (uploaded != null) {
+                    sendDocument(links, uploaded, node, back -> log.debug("finished {}", back));
+                    i++;
+                    continue;
+                }
+                String key = RedisKeyConstant.getWaitingDownloadImage(links.getId());
+                if (Optional.ofNullable(redisTemplate.hasKey(key)).orElse(false)) {
+                    i++;
+                    continue;
+                }
+                String downloadingMessage = messageSource.getMessage("replay.random.downloading", null, "replay.random.downloading", local);
+                sendText(downloadingMessage, node, back -> {
+                    Map<String, Object> saveStatus = new HashMap<>(2);
+                    saveStatus.put("service", "chatRandomCallbackService");
+                    saveStatus.put("image", links);
+                    saveStatus.put("language", local.toLanguageTag());
+                    saveStatus.put("chat", node);
+                    saveStatus.put("replay", back);
+                    ValueOperations<String, Object> ops = redisTemplate.opsForValue();
+                    ops.set(key, saveStatus);
+                    // 通过websocket 开始下载
+                    Map<String, Object> addUrl = new HashMap<>();
+                    Map<String, Object> params = new HashMap<>();
+                    int latestIndex = links.getLink().lastIndexOf('.');
+                    String ext = links.getLink().substring(latestIndex);
+                    params.put("out", links.getId().toString() + ext);
+                    addUrl.put("jsonrpc", "2.0");
+                    addUrl.put("id", "addrpc-" + links.getId());
+                    addUrl.put("method", "aria2.addUri");
+                    addUrl.put("params", new Object[]{
+                            "token:" + aria2Properties.getToken(),
+                            new String[]{links.getLink()},
+                            params
+                    });
+                    try {
+                        String post = JSONUtils.OBJECT_MAPPER.writeValueAsString(addUrl);
+                        httpService.postForString(aria2Properties.getHttp(), null, null, post, MediaType.APPLICATION_JSON_VALUE, httpResponse -> {
+                            try (httpResponse) {
+                                log.debug("content:{}", httpResponse.getContent());
+                            } catch (IOException e) {
+                                log.debug("", e);
+                            }
+                        });
+                    } catch (IOException e) {
+                        log.debug("获取 session 失败", e);
+                        String fail = messageSource.getMessage("replay.random.fail", null, "replay.random.fail", local);
+                        sendText(fail, node, null);
+                    }
+                });
+                i++;
+            } while (end > 0 && end >= id + i && i < 100L);
         } catch (Throwable t) {
             String exception = messageSource.getMessage("replay.exception", null, "replay.exception", local);
             sendText(exception, node, null);
         }
+
     }
 
 
