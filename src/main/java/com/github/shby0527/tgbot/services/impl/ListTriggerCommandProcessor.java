@@ -78,9 +78,10 @@ public class ListTriggerCommandProcessor implements RegisterBotCommandService {
         if (chatJobs != null && !chatJobs.isEmpty()) {
             Map<String, Object> reply_markup = new HashMap<>(1);
             post.put("reply_markup", reply_markup);
-            AtomicInteger integer = new AtomicInteger(0);
+            AtomicInteger integer = new AtomicInteger(1);
+            AtomicInteger gp = new AtomicInteger(0);
             Collection<List<Map<String, String>>> root = chatJobs.stream()
-                    .collect(Collectors.groupingBy(ignored -> integer.getAndIncrement() % 3,
+                    .collect(Collectors.groupingBy(ignored -> integer.getAndIncrement() % 3 == 0 ? gp.getAndIncrement() : gp.get(),
                             Collectors.mapping(v -> {
                                 Map<String, String> selection = new HashMap<>();
                                 selection.put("text", v.getName());
