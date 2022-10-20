@@ -66,6 +66,7 @@ public class SendImageForIdCommandProcessor implements RegisterBotCommandService
     @Override
     public void process(String[] arguments, JsonNode node) {
         JsonNode from = JSONUtils.readJsonObject(node, "message.from", JsonNode.class);
+        String type = JSONUtils.readJsonObject(node, "message.chat.type", String.class);
         Locale local = getUserLocal(from);
         if (arguments == null || arguments.length <= 0) {
             String noArgument = messageSource.getMessage("replay.image-id.no-argument", null, "replay.image-id.no-argument", local);
@@ -75,7 +76,7 @@ public class SendImageForIdCommandProcessor implements RegisterBotCommandService
         try {
             long id = Long.parseLong(arguments[0]);
             long end = 0L;
-            if (arguments.length > 1 && NumberUtils.isCreatable(arguments[1])) {
+            if (arguments.length > 1 && NumberUtils.isCreatable(arguments[1]) && "private".equals(type)) {
                 end = Long.parseLong(arguments[1]);
             }
             long i = 0;

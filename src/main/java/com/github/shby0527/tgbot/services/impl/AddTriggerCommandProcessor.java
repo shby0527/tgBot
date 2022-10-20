@@ -7,6 +7,7 @@ import com.github.shby0527.tgbot.entities.Userinfo;
 import com.github.shby0527.tgbot.entities.Userjobs;
 import com.github.shby0527.tgbot.properties.TelegramBotProperties;
 import com.github.shby0527.tgbot.services.RegisterBotCommandService;
+import com.xw.task.services.HttpResponse;
 import com.xw.task.services.IHttpService;
 import com.xw.web.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -51,11 +53,14 @@ public class AddTriggerCommandProcessor implements RegisterBotCommandService {
         Userinfo userinfo = userInfoMapper.selectByPrimaryKey(userId);
         if (userinfo == null) return;
         String type = chat.get("type").textValue();
-        if (!"private".equals(type)) {
-            // 只要不是私聊频道，权限过低的都不允许创建
-            if (userinfo.getPermission() < 2) return;
-        }
         Long chatId = chat.get("id").longValue();
+        if (!"private".equals(type)) {
+            if (!checkChatAdmin(userId, chatId)) {
+                // 只要不是私聊频道，权限过低的都不允许创建
+                if (userinfo.getPermission() < 2) return;
+            }
+            return;
+        }
         if (arguments.length < 3) {
             sendText("arguments not enough, look /help", node);
             return;
@@ -135,5 +140,30 @@ public class AddTriggerCommandProcessor implements RegisterBotCommandService {
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+
+    private boolean checkChatAdmin(Long userId, Long chatId) {
+        String url = botProperties.getUrl() + "getChatAdministrators";
+        try (HttpResponse response = httpService.get(url, null, Map.of("chat_id", chatId.toString()), null)) {
+            JsonNode back = response.getJson();
+            log.debug("return back {}", back);
+
+            final JsonNode result = back.get("result");
+            if (result.isArray()) {
+                for (int i = 0; i < result.size(); i++) {
+                    final JsonNode item = result.get(i);
+                    final JsonNode user = item.get("user");
+                    final JsonNode id = user.get("id");
+                    if (id.asLong() == userId) {
+                        return true;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            log.error("error", e);
+            return false;
+        }
+        return false;
     }
 }
