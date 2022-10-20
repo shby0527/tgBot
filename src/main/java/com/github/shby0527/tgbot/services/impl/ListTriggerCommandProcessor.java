@@ -54,7 +54,6 @@ public class ListTriggerCommandProcessor implements RegisterBotCommandService {
                 // 只要不是私聊频道，权限过低的都不允许创建
                 if (userinfo.getPermission() < 2) return;
             }
-            return;
         }
 
         List<Userjobs> myChatJobs = userJobsMapper.getMyChatJobs(userId, chatId);

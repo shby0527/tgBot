@@ -59,7 +59,6 @@ public class AddTriggerCommandProcessor implements RegisterBotCommandService {
                 // 只要不是私聊频道，权限过低的都不允许创建
                 if (userinfo.getPermission() < 2) return;
             }
-            return;
         }
         if (arguments.length < 3) {
             sendText("arguments not enough, look /help", node);
