@@ -25,6 +25,10 @@ public class TgUploaded implements Serializable {
      */
     private String tgid;
 
+    private String filePath;
+
+    private Integer httpCode;
+
     /**
      * Table:     tg_uploaded
      * Column:    status

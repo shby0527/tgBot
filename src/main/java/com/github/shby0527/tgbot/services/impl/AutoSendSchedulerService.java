@@ -115,7 +115,6 @@ public class AutoSendSchedulerService implements SchedulerService {
         if (Optional.ofNullable(redisTemplate.hasKey(key)).orElse(false)) return;
         ops.set(key, saveStatus);
         // 通过websocket 开始下载
-
         Map<String, Object> addUrl = new HashMap<>();
         Map<String, Object> params = new HashMap<>();
         int latestIndex = links.getLink().lastIndexOf('.');
