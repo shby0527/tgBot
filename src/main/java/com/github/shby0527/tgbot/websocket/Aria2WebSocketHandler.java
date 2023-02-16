@@ -2,6 +2,8 @@ package com.github.shby0527.tgbot.websocket;
 
 import com.github.shby0527.tgbot.properties.Aria2Properties;
 import com.github.shby0527.tgbot.services.JsonRpcProcessor;
+import jakarta.websocket.ContainerProvider;
+import jakarta.websocket.WebSocketContainer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,11 +12,8 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 
-import javax.websocket.ContainerProvider;
-import javax.websocket.WebSocketContainer;
 import java.io.IOException;
 
 @Slf4j
@@ -62,18 +61,7 @@ public class Aria2WebSocketHandler implements WebSocketHandler {
         container.setDefaultMaxTextMessageBufferSize(1024000);
         container.setDefaultMaxBinaryMessageBufferSize(1024000);
         StandardWebSocketClient client = new StandardWebSocketClient(container);
-        client.doHandshake(this, null, aria2Properties.getAddress())
-                .addCallback(new ListenableFutureCallback<WebSocketSession>() {
-                    @Override
-                    public void onFailure(Throwable ex) {
-                        log.error("reconnecting fail", ex);
-                    }
-
-                    @Override
-                    public void onSuccess(WebSocketSession result) {
-
-                    }
-                });
+        client.execute(this, null, aria2Properties.getAddress());
     }
 
     @Override
